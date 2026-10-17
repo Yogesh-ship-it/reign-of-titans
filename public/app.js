@@ -1,6 +1,6 @@
 const socket=io();
 let me=null,state=null,selectedTerritory=null,activeChallenge=null,isAdmin=false,adminState=null;
-let challengeTicker=null,tournamentTicker=null;
+let challengeTicker=null,tournamentTicker=null,myMatchUsage={used:0,resetAt:0};
 const $=id=>document.getElementById(id);
 const K=id=>state?.kingdoms.find(k=>k.id===id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -12,6 +12,7 @@ function tcount(k){return state.territories.filter(t=>t.kingdom===k).length}
 
 socket.on("connect",()=>{const id=localStorage.getItem("kcPlayerId");if(id)socket.emit("resume",id)});
 socket.on("resumeFailed",()=>localStorage.removeItem("kcPlayerId"));
+socket.on("myMatchUsage",usage=>{myMatchUsage=usage||myMatchUsage;renderMatchLimits()});
 socket.on("registered",({player,state:s})=>{me=player;state=s;playerReady()});
 socket.on("assigned",p=>{me=p;localStorage.setItem("kcPlayerId",p.id);playerReady();toast(`Kingdom assigned: ${p.label}`)});
 socket.on("state",s=>{state=s;if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
@@ -31,7 +32,15 @@ $("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";so
 $("refreshPending").onclick=()=>socket.emit("resume",me.id);
 $("pendingLogout").onclick=$("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 
-function renderAll(){if(!state)return;renderFlags();renderAlerts();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
+function renderAll(){if(!state)return;renderFlags();renderAlerts();renderMatchLimits();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
+function renderMatchLimits(){
+  const wrap=$("matchLimitPlayers");if(!wrap)return;
+  if(!me){wrap.innerHTML='<span class="match-limit-empty">Register or sign in to view your match usage.</span>';updateMatchResetTimer();return}
+  const used=Math.min(3,Math.max(0,Number(myMatchUsage.used||0)));
+  wrap.innerHTML=`<div class="match-limit-player ${used>=3?"limit-reached":""}" title="Your usage: ${used} of 3 matches this hour"><b>${esc(me.label||me.name||"Your matches")}</b><span>${used}/3 MATCHES</span><i><em style="width:${used/3*100}%"></em></i></div>`;
+  updateMatchResetTimer();
+}
+function updateMatchResetTimer(){const el=$("matchResetTimer");if(!el)return;const resetAt=Number(myMatchUsage?.resetAt||state?.matchUsage?.resetAt||0);const left=Math.max(0,resetAt-Date.now());const total=Math.floor(left/1000);el.textContent=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
 function renderFlags(){
   const layer=$("flags");layer.innerHTML="";
   // Positions are based on the ORIGINAL realm shown in the artwork. A captured
@@ -139,7 +148,7 @@ $("profileBtn").onclick=()=>{const k=K(me.kingdom);$("profileName").textContent=
 $("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>hide(x.dataset.close));
 
-function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED";return}const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=fmt(r)};tick();tournamentTicker=setInterval(tick,1000)}
+function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED"}else{const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=fmt(r)}updateMatchResetTimer()};tick();tournamentTicker=setInterval(tick,1000)}
 
 $("adminBtn").onclick=()=>{const pass=prompt("Admin password:");if(pass===null)return;socket.emit("adminLogin",pass,r=>{if(!r?.ok){toast(r?.error||"Admin login failed.");return}isAdmin=true;adminState=r.state;openAdmin("roster")})};
 function openAdmin(tab){renderAdmin(tab);show("adminModal")}

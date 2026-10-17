@@ -8,5 +8,7 @@ Player + Admin tournament prototype.
 - Interactive territory flags rendered as 3x5 grids for each kingdom
 - Titan’s Keep is central and has no territory flags
 - Territory challenge, blinking pending state, fighting-currently panel, battle resolution, and live ownership color changes
+- Three initiated matches per player per shared clock-hour window, with public match usage and a live reset countdown
+- Fifteen-minute defender response timer
 - Admin ID: kamleshhhh
 - Admin password: kamlesh078

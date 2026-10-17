@@ -47,7 +47,8 @@ function blankState(){
     notifications:[],
     adminEvents:[],
     completedBattles:[],
-    defensePoints:Object.fromEntries(kingdoms.map(k=>[k.id,3]))
+    defensePoints:Object.fromEntries(kingdoms.map(k=>[k.id,3])),
+    matchUsage:{windowStart:Math.floor(Date.now()/3600000)*3600000,counts:{}}
   };
 }
 function load(){
@@ -71,6 +72,17 @@ function load(){
 function ensureStateShape(){
   state.defensePoints=state.defensePoints||{};
   kingdoms.forEach(k=>{ if(!Number.isFinite(state.defensePoints[k.id])) state.defensePoints[k.id]=3; state.defensePoints[k.id]=Math.max(0,Math.min(3,Math.round(state.defensePoints[k.id]))); });
+  if(!state.matchUsage || typeof state.matchUsage!="object") state.matchUsage={windowStart:Math.floor(Date.now()/3600000)*3600000,counts:{}};
+  if(!state.matchUsage.counts || typeof state.matchUsage.counts!="object") state.matchUsage.counts={};
+  ensureMatchUsageWindow();
+}
+function ensureMatchUsageWindow(){
+  const currentWindow=Math.floor(Date.now()/3600000)*3600000;
+  if(!state.matchUsage || state.matchUsage.windowStart!==currentWindow){
+    state.matchUsage={windowStart:currentWindow,counts:{}};
+    return true;
+  }
+  return false;
 }
 
 function save(s){fs.writeFileSync(DATA_FILE,JSON.stringify(s,null,2))}
@@ -96,14 +108,16 @@ function publicState(){
     reports:state.reports,
     notifications:state.notifications.slice(0,100),
     kingdoms,
-    defensePoints:state.defensePoints
+    defensePoints:state.defensePoints,
+    matchUsage:{windowStart:state.matchUsage.windowStart,resetAt:state.matchUsage.windowStart+3600000}
   };
 }
 function adminState(){
   return {
     ...publicState(),
     players:Object.fromEntries(Object.entries(state.players).map(([id,p])=>[id,privatePlayer(p)])),
-    completedBattles:state.completedBattles || []
+    completedBattles:state.completedBattles || [],
+    matchUsage:{windowStart:state.matchUsage.windowStart,resetAt:state.matchUsage.windowStart+3600000,counts:state.matchUsage.counts}
   };
 }
 function socketIdsForPlayer(playerId){
@@ -123,7 +137,11 @@ function addNotice(message,kingdomId=null){
   state.notifications.unshift(n);state.notifications=state.notifications.slice(0,100);
   if(kingdomId)notifyKingdom(kingdomId,"battleAlert",n);
 }
-function broadcast(){save(state);io.emit("state",publicState())}
+function broadcast(){
+  save(state);io.emit("state",publicState());
+  // Match counts are private to each player; only send each player their own usage.
+  for(const p of Object.values(state.players)) emitPlayer(p.id,"myMatchUsage",{used:Number(state.matchUsage.counts[p.id]||0),resetAt:state.matchUsage.windowStart+3600000});
+}
 function slotFor(kid){
   const used=Object.values(state.players).filter(p=>p.kingdom===kid).length;
   return used<3?used+1:null;
@@ -173,7 +191,7 @@ function expirePendingChallenge(chId){
     emitAdmins("battleResolved",completed);io.emit("challengeResolved",{challenge:ch,territory:t,winner:publicPlayer(attacker)});
   }else{
     state.defensePoints[defendingKingdom]=current-1;
-    addNotice(`${K(defendingKingdom).name} did not accept within 4 hours. Defense Points: ${state.defensePoints[defendingKingdom]}.`,defendingKingdom);
+    addNotice(`${K(defendingKingdom).name} did not accept the challenge within 15 minutes. Defense Points: ${state.defensePoints[defendingKingdom]}.`,defendingKingdom);
     emitAdmins("challengeExpired",{challenge:ch,defensePoints:state.defensePoints[defendingKingdom]});
   }
   delete state.challenges[chId];delete state.reports[chId];broadcast();
@@ -194,6 +212,7 @@ function evaluate(chId){
 }
 setInterval(()=>{
   const now=Date.now();
+  if(ensureMatchUsageWindow())broadcast();
   for(const ch of Object.values(state.challenges)){
     if(ch.status==="pending"&&now>=ch.expiresAt)expirePendingChallenge(ch.id);
     if(ch.status==="reported"){
@@ -212,7 +231,7 @@ app.use(express.static(path.join(__dirname,"public")));
 
 io.on("connection",socket=>{
   socket.on("resume",id=>{
-    if(state.players[id]){socket.data.playerId=id;socket.emit("registered",{player:publicPlayer(state.players[id]),state:publicState()})}
+    if(state.players[id]){socket.data.playerId=id;socket.emit("registered",{player:publicPlayer(state.players[id]),state:publicState()});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[id]||0),resetAt:state.matchUsage.windowStart+3600000})}
     else socket.emit("resumeFailed")
   });
 
@@ -221,12 +240,12 @@ io.on("connection",socket=>{
     if(!d||fields.some(f=>!String(d[f]||"").trim()))return cb?.({ok:false,error:"Please complete all registration fields."});
     const email=String(d.gmail).trim().toLowerCase();
     const existing=Object.values(state.players).find(p=>p.gmail.toLowerCase()===email);
-    if(existing){socket.data.playerId=existing.id;return cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true})}
+    if(existing){socket.data.playerId=existing.id;return socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[existing.id]||0),resetAt:state.matchUsage.windowStart+3600000});cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true})}
     const id=crypto.randomUUID();
     state.players[id]={id,name:String(d.name).trim(),gmail:String(d.gmail).trim(),riot:String(d.riot).trim(),discord:String(d.discord).trim(),
       kingdom:null,slot:null,label:"Awaiting Kingdom Assignment",wins:0,losses:0,registeredAt:Date.now()};
     state.playerOrder.push(id);socket.data.playerId=id;save(state);
-    cb?.({ok:true,player:publicPlayer(state.players[id]),state:publicState(),existing:false});
+    cb?.({ok:true,player:publicPlayer(state.players[id]),state:publicState(),existing:false});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[id]||0),resetAt:state.matchUsage.windowStart+3600000});
     io.emit("playerRegistered",publicPlayer(state.players[id]));
     broadcast();
   });
@@ -280,13 +299,17 @@ io.on("connection",socket=>{
   });
 
   socket.on("challengeCreate",(tid,cb)=>{
+    if(ensureMatchUsageWindow())broadcast();
     const attacker=state.players[socket.data.playerId],t=state.territories.find(x=>x.id===tid);
     if(!attacker||!t)return cb?.({ok:false,error:"Invalid player or territory."});
     if(!attacker.kingdom)return cb?.({ok:false,error:"Your Kingdom has not been assigned by the admin yet."});
     if(t.kingdom===attacker.kingdom)return cb?.({ok:false,error:"You cannot attack your own Kingdom."});
     if(activeChallengeForTerritory(tid))return cb?.({ok:false,error:"That territory is already under challenge."});
+    const used=Number(state.matchUsage.counts[attacker.id]||0);
+    if(used>=3)return cb?.({ok:false,error:"You have used all 3 matches for this hour. Your match limit resets at the next hour."});
     const ch={id:crypto.randomUUID(),territoryId:tid,attackerId:attacker.id,defenderKingdom:t.kingdom,defenderId:null,status:"pending",
-      createdAt:Date.now(),expiresAt:Date.now()+4*60*60*1000,checkins:{},chat:[]};
+      createdAt:Date.now(),expiresAt:Date.now()+15*60*1000,checkins:{},chat:[]};
+    state.matchUsage.counts[attacker.id]=used+1;
     state.challenges[ch.id]=ch;addNotice(`${attacker.label} challenged Territory ${t.num} of ${K(t.kingdom).name}.`,t.kingdom);
     emitAdmins("challengeRequest",{challenge:ch,attacker:publicPlayer(attacker),territory:t,defenderKingdom:K(t.kingdom)});
     notifyKingdom(t.kingdom,"challengeIncoming",{challenge:ch,attacker:publicPlayer(attacker),territory:t,defenderKingdom:K(t.kingdom)});
@@ -364,8 +387,6 @@ io.on("connection",socket=>{
   });
 });
 
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get("/api/health",(req,res)=>res.json({ok:true,version:2}));
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 server.listen(PORT,()=>console.log(`Kingdom Conquest running on http://localhost:${PORT}`));
