@@ -1,0 +1,1006 @@
+{
+  "version": 4,
+  "tournamentStartedAt": null,
+  "players": {
+    "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
+      "id": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "name": "123",
+      "gmail": "kamlesh@123",
+      "riot": "kamleshh",
+      "discord": "kamlesh",
+      "kingdom": "frost",
+      "slot": 1,
+      "label": "Frosthold A",
+      "wins": 3,
+      "losses": 0,
+      "registeredAt": 1791211126255
+    },
+    "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d": {
+      "id": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+      "name": "kammu",
+      "gmail": "hazy@121",
+      "riot": "hazy",
+      "discord": "hazzyyyy",
+      "kingdom": "stone",
+      "slot": 1,
+      "label": "Stoneheart A",
+      "wins": 1,
+      "losses": 0,
+      "registeredAt": 1791215669435
+    },
+    "75e716f9-ddf7-4abf-a4db-981783c64944": {
+      "id": "75e716f9-ddf7-4abf-a4db-981783c64944",
+      "name": "kammudon",
+      "gmail": "kamlesh@1231231",
+      "riot": "kamleshhhhh",
+      "discord": "kamlesh078888",
+      "kingdom": "stone",
+      "slot": 2,
+      "label": "Stoneheart B",
+      "wins": 1,
+      "losses": 0,
+      "registeredAt": 1791216084773
+    },
+    "1dac3372-015b-42b8-9125-8348d186fd8e": {
+      "id": "1dac3372-015b-42b8-9125-8348d186fd8e",
+      "name": "karan",
+      "gmail": "karan2345@gmail.com",
+      "riot": "karann",
+      "discord": "karannn",
+      "kingdom": "frost",
+      "slot": 2,
+      "label": "Frosthold B",
+      "wins": 0,
+      "losses": 0,
+      "registeredAt": 1791284962165
+    }
+  },
+  "playerOrder": [
+    "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+    "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+    "75e716f9-ddf7-4abf-a4db-981783c64944",
+    "1dac3372-015b-42b8-9125-8348d186fd8e"
+  ],
+  "territories": [
+    {
+      "id": "verdant-1",
+      "num": 1,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-2",
+      "num": 2,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-3",
+      "num": 3,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-4",
+      "num": 4,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-5",
+      "num": 5,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-6",
+      "num": 6,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-7",
+      "num": 7,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-8",
+      "num": 8,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-9",
+      "num": 9,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-10",
+      "num": 10,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-11",
+      "num": 11,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-12",
+      "num": 12,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-13",
+      "num": 13,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-14",
+      "num": 14,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "verdant-15",
+      "num": 15,
+      "kingdom": "verdant",
+      "originalKingdom": "verdant"
+    },
+    {
+      "id": "frost-1",
+      "num": 1,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-2",
+      "num": 2,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-3",
+      "num": 3,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-4",
+      "num": 4,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-5",
+      "num": 5,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-6",
+      "num": 6,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-7",
+      "num": 7,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-8",
+      "num": 8,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-9",
+      "num": 9,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-10",
+      "num": 10,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-11",
+      "num": 11,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-12",
+      "num": 12,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-13",
+      "num": 13,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-14",
+      "num": 14,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "frost-15",
+      "num": 15,
+      "kingdom": "frost",
+      "originalKingdom": "frost"
+    },
+    {
+      "id": "stone-1",
+      "num": 1,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-2",
+      "num": 2,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-3",
+      "num": 3,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-4",
+      "num": 4,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-5",
+      "num": 5,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-6",
+      "num": 6,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-7",
+      "num": 7,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-8",
+      "num": 8,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-9",
+      "num": 9,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-10",
+      "num": 10,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-11",
+      "num": 11,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-12",
+      "num": 12,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-13",
+      "num": 13,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-14",
+      "num": 14,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "stone-15",
+      "num": 15,
+      "kingdom": "stone",
+      "originalKingdom": "stone"
+    },
+    {
+      "id": "sky-1",
+      "num": 1,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-2",
+      "num": 2,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-3",
+      "num": 3,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-4",
+      "num": 4,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-5",
+      "num": 5,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-6",
+      "num": 6,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-7",
+      "num": 7,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-8",
+      "num": 8,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-9",
+      "num": 9,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-10",
+      "num": 10,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-11",
+      "num": 11,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-12",
+      "num": 12,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-13",
+      "num": 13,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-14",
+      "num": 14,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sky-15",
+      "num": 15,
+      "kingdom": "sky",
+      "originalKingdom": "sky"
+    },
+    {
+      "id": "sun-1",
+      "num": 1,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-2",
+      "num": 2,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-3",
+      "num": 3,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-4",
+      "num": 4,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-5",
+      "num": 5,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-6",
+      "num": 6,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-7",
+      "num": 7,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-8",
+      "num": 8,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-9",
+      "num": 9,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-10",
+      "num": 10,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-11",
+      "num": 11,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-12",
+      "num": 12,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-13",
+      "num": 13,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-14",
+      "num": 14,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "sun-15",
+      "num": 15,
+      "kingdom": "sun",
+      "originalKingdom": "sun"
+    },
+    {
+      "id": "ember-1",
+      "num": 1,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-2",
+      "num": 2,
+      "kingdom": "stone",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-3",
+      "num": 3,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-4",
+      "num": 4,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-5",
+      "num": 5,
+      "kingdom": "frost",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-6",
+      "num": 6,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-7",
+      "num": 7,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-8",
+      "num": 8,
+      "kingdom": "frost",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-9",
+      "num": 9,
+      "kingdom": "frost",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-10",
+      "num": 10,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-11",
+      "num": 11,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-12",
+      "num": 12,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-13",
+      "num": 13,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-14",
+      "num": 14,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "ember-15",
+      "num": 15,
+      "kingdom": "ember",
+      "originalKingdom": "ember"
+    },
+    {
+      "id": "shadow-1",
+      "num": 1,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-2",
+      "num": 2,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-3",
+      "num": 3,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-4",
+      "num": 4,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-5",
+      "num": 5,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-6",
+      "num": 6,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-7",
+      "num": 7,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-8",
+      "num": 8,
+      "kingdom": "stone",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-9",
+      "num": 9,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-10",
+      "num": 10,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-11",
+      "num": 11,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-12",
+      "num": 12,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-13",
+      "num": 13,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-14",
+      "num": 14,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    },
+    {
+      "id": "shadow-15",
+      "num": 15,
+      "kingdom": "shadow",
+      "originalKingdom": "shadow"
+    }
+  ],
+  "challenges": {},
+  "reports": {},
+  "notifications": [
+    {
+      "id": "70d538d9-a169-4fd6-89d6-50c687242736",
+      "message": "Skyharbor did not accept within 4 hours. Defense Points: -1.",
+      "kingdomId": "sky",
+      "time": 1791285673372
+    },
+    {
+      "id": "4d13339e-3304-43d5-aaab-b12e8e7d032b",
+      "message": "Frosthold B challenged Territory 9 of Skyharbor.",
+      "kingdomId": "sky",
+      "time": 1791285009495
+    },
+    {
+      "id": "d2b1b43b-836c-4a37-8c43-fe4b8d4265da",
+      "message": "karan has been assigned to Frosthold.",
+      "kingdomId": null,
+      "time": 1791284975378
+    },
+    {
+      "id": "1c0b9155-51ed-4af3-b51c-ac20a65dae1e",
+      "message": "Stoneheart B captured Territory 8 of Shadowvale.",
+      "kingdomId": null,
+      "time": 1791216698740
+    },
+    {
+      "id": "893d9519-c30f-42cd-8851-c4d200c948e2",
+      "message": "Stoneheart A captured Territory 2 of Emberfall.",
+      "kingdomId": null,
+      "time": 1791216645362
+    },
+    {
+      "id": "9947df87-1026-4678-829f-b8797e84b612",
+      "message": "Frosthold A captured Territory 5 of Emberfall.",
+      "kingdomId": null,
+      "time": 1791216148634
+    },
+    {
+      "id": "3c4da1d5-4b19-4fbb-8dde-523f33e1ade7",
+      "message": "Stoneheart B challenged Territory 8 of Shadowvale.",
+      "kingdomId": "shadow",
+      "time": 1791216097901
+    },
+    {
+      "id": "2929f22a-c447-44de-ada9-f77e29e4e12a",
+      "message": "kammudon has been assigned to Stoneheart.",
+      "kingdomId": null,
+      "time": 1791216091939
+    },
+    {
+      "id": "f27f1a7b-de27-4fdc-8dda-c01d52104c71",
+      "message": "Frosthold A captured Territory 8 of Emberfall.",
+      "kingdomId": null,
+      "time": 1791216068054
+    },
+    {
+      "id": "99a0bfd5-48b4-48f6-9167-2b22ca6e4ec6",
+      "message": "Stoneheart A challenged Territory 2 of Emberfall.",
+      "kingdomId": "ember",
+      "time": 1791216044424
+    },
+    {
+      "id": "a22dabf6-c318-4537-afda-d7b65d5fd76a",
+      "message": "kammu has been assigned to Stoneheart.",
+      "kingdomId": null,
+      "time": 1791215682778
+    },
+    {
+      "id": "72a13efa-8423-4592-986e-cb01542403de",
+      "message": "Frosthold A challenged Territory 5 of Emberfall.",
+      "kingdomId": "ember",
+      "time": 1791215548631
+    },
+    {
+      "id": "08989bad-1d27-4660-9a54-0282cabd6a97",
+      "message": "Frosthold A challenged Territory 8 of Emberfall.",
+      "kingdomId": "ember",
+      "time": 1791215467180
+    },
+    {
+      "id": "b49dade8-cc03-4163-bad8-6344744185b8",
+      "message": "Frosthold A captured Territory 9 of Emberfall.",
+      "kingdomId": null,
+      "time": 1791211764496
+    },
+    {
+      "id": "4fe5093a-43b6-4372-a24c-37634ba3ae89",
+      "message": "Frosthold A challenged Territory 9 of Emberfall.",
+      "kingdomId": "ember",
+      "time": 1791211163705
+    },
+    {
+      "id": "bd9c1e98-6298-4c56-ae69-1677dbbdf923",
+      "message": "123 has been assigned to Frosthold.",
+      "kingdomId": null,
+      "time": 1791211138879
+    }
+  ],
+  "adminEvents": [
+    {
+      "time": 1791284975378,
+      "action": "assign",
+      "playerId": "1dac3372-015b-42b8-9125-8348d186fd8e",
+      "kingdomId": "frost"
+    },
+    {
+      "time": 1791216091939,
+      "action": "assign",
+      "playerId": "75e716f9-ddf7-4abf-a4db-981783c64944",
+      "kingdomId": "stone"
+    },
+    {
+      "time": 1791215682778,
+      "action": "assign",
+      "playerId": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+      "kingdomId": "stone"
+    },
+    {
+      "time": 1791211138874,
+      "action": "assign",
+      "playerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "kingdomId": "frost"
+    }
+  ],
+  "completedBattles": [
+    {
+      "id": "eb8b83b4-653b-436d-ae8c-24a026dc21f7",
+      "territoryId": "shadow-8",
+      "attackerId": "75e716f9-ddf7-4abf-a4db-981783c64944",
+      "defenderKingdom": "shadow",
+      "defenderId": null,
+      "status": "resolved",
+      "createdAt": 1791216097901,
+      "expiresAt": 1791216697901,
+      "checkins": {},
+      "chat": [],
+      "winnerId": "75e716f9-ddf7-4abf-a4db-981783c64944",
+      "resolutionReason": "No defender accepted within 10 minutes.",
+      "resolvedAt": 1791216698740,
+      "territory": {
+        "id": "shadow-8",
+        "num": 8,
+        "kingdom": "stone",
+        "originalKingdom": "shadow"
+      },
+      "winner": {
+        "id": "75e716f9-ddf7-4abf-a4db-981783c64944",
+        "name": "kammudon",
+        "kingdom": "stone",
+        "slot": 2,
+        "label": "Stoneheart B",
+        "wins": 1,
+        "losses": 0,
+        "status": "Assigned"
+      },
+      "reports": {},
+      "completedAt": 1791216698740
+    },
+    {
+      "id": "620b017a-a1bc-4c12-b87d-55aa4b87e6bd",
+      "territoryId": "ember-2",
+      "attackerId": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+      "defenderKingdom": "ember",
+      "defenderId": null,
+      "status": "resolved",
+      "createdAt": 1791216044424,
+      "expiresAt": 1791216644424,
+      "checkins": {},
+      "chat": [
+        {
+          "id": "582183cd-b9a4-47b0-8050-001203d17797",
+          "playerId": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+          "label": "Stoneheart A",
+          "text": "hi",
+          "time": 1791216047579
+        }
+      ],
+      "winnerId": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+      "resolutionReason": "No defender accepted within 10 minutes.",
+      "resolvedAt": 1791216645361,
+      "territory": {
+        "id": "ember-2",
+        "num": 2,
+        "kingdom": "stone",
+        "originalKingdom": "ember"
+      },
+      "winner": {
+        "id": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
+        "name": "kammu",
+        "kingdom": "stone",
+        "slot": 1,
+        "label": "Stoneheart A",
+        "wins": 1,
+        "losses": 0,
+        "status": "Assigned"
+      },
+      "reports": {},
+      "completedAt": 1791216645361
+    },
+    {
+      "id": "a8c384fd-7771-48f0-bdd2-ec44fab4b964",
+      "territoryId": "ember-5",
+      "attackerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "defenderKingdom": "ember",
+      "defenderId": null,
+      "status": "resolved",
+      "createdAt": 1791215548631,
+      "expiresAt": 1791216148631,
+      "checkins": {},
+      "chat": [],
+      "winnerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "resolutionReason": "No defender accepted within 10 minutes.",
+      "resolvedAt": 1791216148634,
+      "territory": {
+        "id": "ember-5",
+        "num": 5,
+        "kingdom": "frost",
+        "originalKingdom": "ember"
+      },
+      "winner": {
+        "id": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+        "name": "123",
+        "kingdom": "frost",
+        "slot": 1,
+        "label": "Frosthold A",
+        "wins": 3,
+        "losses": 0,
+        "status": "Assigned"
+      },
+      "reports": {},
+      "completedAt": 1791216148634
+    },
+    {
+      "id": "41ac3c35-c681-452e-ac04-385f61857d3e",
+      "territoryId": "ember-8",
+      "attackerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "defenderKingdom": "ember",
+      "defenderId": null,
+      "status": "resolved",
+      "createdAt": 1791215467179,
+      "expiresAt": 1791216067179,
+      "checkins": {},
+      "chat": [],
+      "winnerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "resolutionReason": "No defender accepted within 10 minutes.",
+      "resolvedAt": 1791216068054,
+      "territory": {
+        "id": "ember-8",
+        "num": 8,
+        "kingdom": "frost",
+        "originalKingdom": "ember"
+      },
+      "winner": {
+        "id": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+        "name": "123",
+        "kingdom": "frost",
+        "slot": 1,
+        "label": "Frosthold A",
+        "wins": 2,
+        "losses": 0,
+        "status": "Assigned"
+      },
+      "reports": {},
+      "completedAt": 1791216068054
+    },
+    {
+      "id": "a3f6e9cb-0b8c-410d-8443-580badd25149",
+      "territoryId": "ember-9",
+      "attackerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "defenderKingdom": "ember",
+      "defenderId": null,
+      "status": "resolved",
+      "createdAt": 1791211163705,
+      "expiresAt": 1791211763705,
+      "checkins": {},
+      "chat": [],
+      "winnerId": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+      "resolutionReason": "No defender accepted within 10 minutes.",
+      "resolvedAt": 1791211764496,
+      "territory": {
+        "id": "ember-9",
+        "num": 9,
+        "kingdom": "frost",
+        "originalKingdom": "ember"
+      },
+      "winner": {
+        "id": "b8267732-1e5d-481a-ad40-d6ad71d0d769",
+        "name": "123",
+        "kingdom": "frost",
+        "slot": 1,
+        "label": "Frosthold A",
+        "wins": 1,
+        "losses": 0,
+        "status": "Assigned"
+      },
+      "reports": {},
+      "completedAt": 1791211764496
+    }
+  ],
+  "defensePoints": {
+    "verdant": 3,
+    "frost": 3,
+    "stone": 3,
+    "sky": 3,
+    "sun": 3,
+    "ember": 3,
+    "shadow": 3
+  }
+}

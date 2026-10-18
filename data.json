@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 4,
   "tournamentStartedAt": null,
   "players": {
     "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
@@ -1003,13 +1003,30 @@
     "ember": 3,
     "shadow": 3
   },
-  "defenseRegenAt": {
-    "verdant": 1792341988124,
-    "frost": 1792341988124,
-    "stone": 1792341988124,
-    "sky": 1792341988124,
-    "sun": 1792341988124,
-    "ember": 1792341988124,
-    "shadow": 1792341988124
-  }
+  "matchUsage": {
+    "players": {
+      "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
+        "used": 0,
+        "windowStart": null,
+        "resetAt": null
+      },
+      "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d": {
+        "used": 0,
+        "windowStart": null,
+        "resetAt": null
+      },
+      "75e716f9-ddf7-4abf-a4db-981783c64944": {
+        "used": 0,
+        "windowStart": null,
+        "resetAt": null
+      },
+      "1dac3372-015b-42b8-9125-8348d186fd8e": {
+        "used": 0,
+        "windowStart": null,
+        "resetAt": null
+      }
+    }
+  },
+  "lastDefenseRegenAt": 1792347991648,
+  "lastOpponentByAttackingKingdom": {}
 }

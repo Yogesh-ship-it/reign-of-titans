@@ -6,9 +6,6 @@ const K=id=>state?.kingdoms.find(k=>k.id===id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const show=id=>$(id).classList.remove("hidden"), hide=id=>$(id).classList.add("hidden");
 function fmt(ms){let s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function fmtCountdown(ms){const total=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`}
-function playerDisplayName(p){return p?.riot||p?.name||p?.label||"Unknown player"}
-function playerInActiveMatch(playerId){return Object.values(state?.challenges||{}).some(c=>["accepted","ready","reported","disputed"].includes(c.status)&&(c.attackerId===playerId||c.defenderId===playerId))}
 function toast(s){$("toast").textContent=s;show("toast");clearTimeout(window.toastT);window.toastT=setTimeout(()=>hide("toast"),3000)}
 function playersFor(k){return Object.values(state.players).filter(p=>p.kingdom===k).sort((a,b)=>(a.slot||9)-(b.slot||9))}
 function tcount(k){return state.territories.filter(t=>t.kingdom===k).length}
@@ -20,32 +17,31 @@ socket.on("registered",({player,state:s})=>{me=player;state=s;playerReady()});
 socket.on("assigned",p=>{me=p;localStorage.setItem("kcPlayerId",p.id);playerReady();toast(`Kingdom assigned: ${p.label}`)});
 socket.on("state",s=>{state=s;if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
 socket.on("playerRegistered",p=>{if(isAdmin)renderAdminRoster()});
-socket.on("battleAlert",n=>{if(playerInActiveMatch(me?.id)&&/(challenged|declined the challenge)/i.test(n?.message||""))return;toast(n.message);renderAlerts()});
-socket.on("challengeIncoming",payload=>{if(playerInActiveMatch(me?.id))return;toast(`⚔ ${playerDisplayName(payload?.attacker)} challenged ${payload?.defenderKingdom?.name||"your Kingdom"}.`);renderAll()});
-socket.on("walkover",payload=>{if(payload){$("walkoverTitle").textContent=payload.title||"VICTORY BY WALKOVER!";$("walkoverText").textContent=payload.message||"The match deadline has expired.";show("walkoverModal")}if(activeChallenge?.id===payload?.challengeId){activeChallenge=null;hide("matchModal")}renderAll()});
-socket.on("challengeAccepted",ch=>{if(me&&(ch.attackerId===me.id||ch.defenderId===me.id)){activeChallenge=ch;openMatch()}renderAll();});
+socket.on("battleAlert",n=>{toast(n.message);renderAlerts()});
+socket.on("challengeIncoming",payload=>{window.incomingChallenge=payload;toast("⚔ Your territory is being challenged.");renderAlerts();showDefenseDashboard()});
+socket.on("walkover",payload=>{if(payload){$("walkoverTitle").textContent=payload.title||"VICTORY BY WALKOVER!";$("walkoverText").textContent=payload.message||"The match deadline has expired.";show("walkoverModal")}window.incomingChallenge=null;if(activeChallenge?.id===payload?.challengeId){activeChallenge=null;hide("matchModal")}renderAll()});
+socket.on("challengeAccepted",ch=>{if(me&&(ch.attackerId===me.id||ch.defenderId===me.id)){window.incomingChallenge=null;hide("defenseDashboard");activeChallenge=ch;openMatch()}else if(window.incomingChallenge?.challenge?.id===ch.id){window.incomingChallenge=null;hide("defenseDashboard")}renderAll();});
 socket.on("challengeUpdated",ch=>{if(activeChallenge?.id===ch.id){activeChallenge=ch;openMatch()}});
 socket.on("resultReported",({challenge})=>{if(activeChallenge?.id===challenge.id){activeChallenge=challenge;openMatch();toast("A result has been reported.")}});
-socket.on("challengeCancelled",d=>{if(activeChallenge?.id===d.challengeId){activeChallenge=null;hide("matchModal");toast(d.reason||"Challenge cancelled.")}renderAll()});
-socket.on("challengeDeclined",d=>{if(activeChallenge?.id===d.challengeId){activeChallenge=null;hide("matchModal");toast("Challenge declined. The defending Kingdom lost 1 Defense Point.")}else if(d.defenderKingdom===me?.kingdom)toast("A teammate declined the challenge. Your Kingdom lost 1 Defense Point.");renderAll()});
-socket.on("challengeResolved",d=>{if(activeChallenge?.id===d.challenge.id){activeChallenge=null;hide("matchModal");toast(`${playerDisplayName(d.winner)} won the territory.`)}renderAll()});
+socket.on("challengeCancelled",d=>{if(window.incomingChallenge?.challenge?.id===d.challengeId){window.incomingChallenge=null;hide("defenseDashboard");}if(activeChallenge?.id===d.challengeId){activeChallenge=null;hide("matchModal");toast("Challenge cancelled.")}renderAll()});
+socket.on("challengeResolved",d=>{if(window.incomingChallenge?.challenge?.id===d.challenge.id)window.incomingChallenge=null;if(activeChallenge?.id===d.challenge.id){activeChallenge=null;hide("matchModal");toast(`${d.winner.label} won the territory.`)}renderAll()});
 socket.on("chatMessage",({challengeId,message})=>{if(activeChallenge?.id===challengeId){appendChat(message)}});
 
-function playerReady(){if(!me.kingdom){showPending();return}hide("loginScreen");hide("pendingScreen");hide("scoreScreen");show("mapScreen");$("profileLabel").textContent=`${me.label} · ${K(me.kingdom).name}`;renderAll();restoreActiveChallenge();startTournamentClock()}
+function playerReady(){if(!me.kingdom){showPending();return}hide("loginScreen");hide("pendingScreen");hide("scoreScreen");show("mapScreen");$("profileLabel").textContent=`${me.label} · ${K(me.kingdom).name}`;renderAll();startTournamentClock()}
 function showPending(){hide("loginScreen");hide("mapScreen");hide("scoreScreen");show("pendingScreen");$("pendingName").textContent=`Welcome, ${me.riot||me.name}`;$("pendingPlayer").textContent=`${me.name} · Registration #${state.playerOrder.indexOf(me.id)+1}`}
 $("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";socket.emit("register",{riot:$("riot").value.trim(),discord:$("discord").value.trim()},r=>{if(!r?.ok){$("loginError").textContent=r?.error||"Registration failed.";return}me=r.player;state=r.state;localStorage.setItem("kcPlayerId",me.id);playerReady()})};
 $("refreshPending").onclick=()=>socket.emit("resume",me.id);
 $("pendingLogout").onclick=$("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 
-function renderAll(){if(!state)return;renderFlags();renderAlerts();renderMatchLimits();renderDefenseDashboard();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
+function renderAll(){if(!state)return;renderFlags();renderAlerts();renderMatchLimits();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
 function renderMatchLimits(){
   const wrap=$("matchLimitPlayers");if(!wrap)return;
   if(!me){wrap.innerHTML='<span class="match-limit-empty">Register or sign in to view your match usage.</span>';updateMatchResetTimer();return}
   const used=Math.min(3,Math.max(0,Number(myMatchUsage.used||0)));
-  wrap.innerHTML=`<div class="match-limit-player ${used>=3?"limit-reached":""}" title="Your usage: ${used} of 3 matches this hour"><b>${esc(me.label||me.name||"Your matches")}</b><span>${used}/3 MATCHES</span><i><em style="width:${used/3*100}%"></em></i></div>`;
+  wrap.innerHTML=`<div class="match-limit-player ${used>=3?"limit-reached":""}" title="Your usage: ${used} of 3 matches in your personal two-hour period"><b>${esc(me.label||me.name||"Your matches")}</b><span>${used}/3 MATCHES USED</span><i><em style="width:${used/3*100}%"></em></i></div>`;
   updateMatchResetTimer();
 }
-function updateMatchResetTimer(){const el=$("matchResetTimer");if(!el)return;const resetAt=Number(myMatchUsage?.resetAt||state?.matchUsage?.resetAt||0);const left=Math.max(0,resetAt-Date.now());const total=Math.floor(left/1000);el.textContent=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
+function updateMatchResetTimer(){const el=$("matchResetTimer");if(!el)return;const resetAt=Number(myMatchUsage?.resetAt||0);if(!resetAt){el.textContent="STARTS AFTER CHECK-IN";return}const left=Math.max(0,resetAt-Date.now());const total=Math.floor(left/1000);el.textContent=`${String(Math.floor(total/3600)).padStart(2,"0")}:${String(Math.floor((total%3600)/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
 function renderFlags(){
   const layer=$("flags");layer.innerHTML="";
   // Positions are based on the ORIGINAL realm shown in the artwork. A captured
@@ -97,78 +93,53 @@ function openTarget(id){
 }
 $("confirmChallenge").onclick=()=>{if(!selectedTerritory)return;socket.emit("challengeCreate",selectedTerritory.id,r=>{if(!r?.ok)return toast(r?.error||"Challenge failed.");activeChallenge=r.challenge;hide("challengePrompt");openMatch();renderAll()})};
 
-function pendingChallengesForMe(){
-  if(!me?.kingdom||playerInActiveMatch(me.id))return [];
-  return Object.values(state?.challenges||{}).filter(ch=>ch.status==="pending"&&ch.defenderKingdom===me.kingdom&&!playerInActiveMatch(ch.attackerId)).sort((a,b)=>a.createdAt-b.createdAt);
-}
-function renderDefenseDashboard(){
-  const wrap=$("defenseChallengeList");if(!wrap||!state)return;
-  const challenges=pendingChallengesForMe();
-  if(!challenges.length){hide("defenseDashboard");clearInterval(window.defenseTicker);wrap.innerHTML="";return;}
-  const kingdom=K(me.kingdom),points=Math.max(0,Math.min(3,Number(state.defensePoints?.[me.kingdom]??3))),risk=points===0;
-  $("defenseKingdomPoints").innerHTML=`<div class="defense-points ${risk?"critical":""}"><span>${esc(kingdom?.name||"Your Kingdom")} DEFENSE POINTS</span><b>${points}/3</b>${risk?"<em>IN RISK</em>":""}</div><div class="defense-meter ${risk?"critical":""}"><span style="width:${points/3*100}%"></span></div>`;
-  wrap.innerHTML=challenges.map(ch=>{
-    const attacker=state.players[ch.attackerId],territory=state.territories.find(t=>t.id===ch.territoryId);
-    return `<article class="defense-challenge-card"><div class="defense-challenge-top"><b>${esc(playerDisplayName(attacker))} challenges ${esc(kingdom?.name||"your Kingdom")}</b><small>Territory ${territory?.num||"?"}</small></div><p>${esc(playerDisplayName(attacker))} has challenged your Kingdom. Any available defender can accept.</p><div class="dashboard-timer" data-defense-deadline="${Number(ch.expiresAt||0)}">${fmtCountdown(Number(ch.expiresAt||0)-Date.now())}</div><div class="defense-challenge-actions"><button class="gold-button" data-defense-action="accept" data-challenge="${esc(ch.id)}">ACCEPT</button><button class="decline-button" data-defense-action="decline" data-challenge="${esc(ch.id)}">DECLINE</button></div></article>`;
-  }).join("");
-  show("defenseDashboard");
-  clearInterval(window.defenseTicker);
-  window.defenseTicker=setInterval(()=>{
-    document.querySelectorAll("[data-defense-deadline]").forEach(el=>{const left=Number(el.dataset.defenseDeadline)-Date.now();el.textContent=fmtCountdown(left);if(left<=60000)el.classList.add("urgent")});
-  },250);
-}
-$("defenseChallengeList").onclick=e=>{
-  const button=e.target.closest("button[data-defense-action]");if(!button)return;
-  const id=button.dataset.challenge,action=button.dataset.defenseAction;
-  if(action==="accept")socket.emit("challengeAccept",id,r=>{if(!r?.ok){toast(r?.error||"Challenge acceptance failed.");renderAll();return}activeChallenge=r.challenge||state?.challenges?.[id];hide("alertsPanel");openMatch();renderAll()});
-  if(action==="decline")socket.emit("challengeDecline",id,r=>{if(!r?.ok){toast(r?.error||"Challenge decline failed.");renderAll();return}toast(`Challenge declined. Your Kingdom now has ${r.defensePoints}/3 Defense Points.`);renderAll()});
-};
-$("closeWalkover").onclick=()=>hide("walkoverModal");
-function restoreActiveChallenge(){
-  if(!me||!state||activeChallenge)return;
-  const all=Object.values(state.challenges||{});
-  const current=all.find(ch=>["accepted","ready","reported","disputed"].includes(ch.status)&&(ch.attackerId===me.id||ch.defenderId===me.id));
-  const pending=all.filter(ch=>ch.status==="pending"&&ch.attackerId===me.id).sort((a,b)=>a.createdAt-b.createdAt)[0];
-  const found=current||pending;
-  if(found){activeChallenge=found;openMatch();}
-}
+function showDefenseDashboard(){const x=window.incomingChallenge;if(!x?.challenge||x.challenge.status!=="pending")return;const ch=x.challenge;$("defenseDetails").textContent=`${x.attacker?.riot||x.attacker?.name||x.attacker?.label||"An opponent"} challenged Territory ${x.territory?.num||"?"} of ${x.defenderKingdom?.name||"your Kingdom"}.`;show("defenseDashboard");const tick=()=>{const left=Math.max(0,ch.expiresAt-Date.now());$("defenseTimer").textContent=fmt(left);if(left<=0){clearInterval(window.defenseTicker);hide("defenseDashboard")}};clearInterval(window.defenseTicker);tick();window.defenseTicker=setInterval(tick,250)}
+$("acceptDefense").onclick=()=>{const ch=window.incomingChallenge?.challenge;if(!ch)return;socket.emit("challengeAccept",ch.id,r=>{if(!r?.ok){toast(r?.error||"Challenge acceptance failed.");return}window.incomingChallenge=null;hide("defenseDashboard");hide("alertsPanel");activeChallenge=state?.challenges?.[ch.id]||{...ch,...r.challenge};openMatch();renderAll()})};
+$("declineDefense").onclick=()=>{const ch=window.incomingChallenge?.challenge;if(!ch)return;socket.emit("challengeDecline",ch.id,r=>{if(!r?.ok){toast(r?.error||"Decline failed.");return}window.incomingChallenge=null;hide("defenseDashboard");toast("Challenge declined. Your kingdom lost 1 Defense Point.");renderAll()})};$("closeWalkover").onclick=()=>hide("walkoverModal");
 function updateActiveChallenge(){if(!activeChallenge)return;const f=state.challenges[activeChallenge.id];if(f)activeChallenge=f}
 function openMatch(){
-  if(!activeChallenge)return;const ch=state?.challenges?.[activeChallenge.id]||activeChallenge;activeChallenge=ch;
+  if(!activeChallenge)return;const ch=state.challenges[activeChallenge.id]||activeChallenge;activeChallenge=ch;
   const terr=state.territories.find(t=>t.id===ch.territoryId),a=state.players[ch.attackerId],d=ch.defenderId?state.players[ch.defenderId]:null;
-  $("matchTitle").textContent=`Territory ${terr?.num||""} · ${K(ch.defenderKingdom)?.name||"Kingdom"}`;
-  $("attackerName").textContent=playerDisplayName(a);$("attackerKingdom").textContent=a?K(a.kingdom)?.name||"":"";
-  $("defenderName").textContent=d?playerDisplayName(d):"Waiting for a defender…";$("defenderKingdom").textContent=d?K(d.kingdom)?.name||"":K(ch.defenderKingdom)?.name||"";
-  $("attackerSymbol").style.color=a?K(a.kingdom)?.color||"#fff":"#fff";$("defenderSymbol").style.color=d?K(d.kingdom)?.color||"#fff":K(ch.defenderKingdom)?.color||"#fff";
-  const statusText={pending:`Waiting for an available ${K(ch.defenderKingdom)?.name||"defender"} player to accept or decline.`,accepted:"Both players must check in before the deadline.",ready:"Both players checked in. The check-in timer has stopped. READY TO PLAY.",reported:"The result has been submitted and is awaiting confirmation.",disputed:"The reported results differ. The administrator must decide the winner."};
-  $("waitingTitle").textContent=ch.status==="pending"?"WAITING FOR DEFENDER":ch.status==="accepted"?"GAME CHECK-IN WINDOW":ch.status==="ready"?"READY TO PLAY":ch.status.toUpperCase();
-  $("waitingText").textContent=statusText[ch.status]||"";
-  $("waitingBox").classList.toggle("hidden",!["pending","accepted","ready"].includes(ch.status));
+  $("matchTitle").textContent=`Territory ${terr?.num||""} · ${K(ch.defenderKingdom).name}`;
+  $("attackerName").textContent=a?.riot||a?.name||a?.label||"Attacker";$("attackerKingdom").textContent=a?`${K(a.kingdom).name} · ${a.label}`:"";
+  $("defenderName").textContent=d?.riot||d?.name||d?.label||"Waiting for a defender…";$("defenderKingdom").textContent=d?`${K(d.kingdom).name} · ${d.label}`:K(ch.defenderKingdom).name;
+  $("attackerSymbol").style.color=a?K(a.kingdom).color:"#fff";$("defenderSymbol").style.color=d?K(d.kingdom).color:K(ch.defenderKingdom).color;
+  $("waitingText").textContent=ch.status==="pending"?`Any ${K(ch.defenderKingdom).name} player can accept this challenge.`:`${d?.label||"A defender"} accepted the challenge.`;
+  if(ch.status==="accepted"&&ch.checkinExpiresAt){$("waitingTitle").textContent="GAME CHECK-IN WINDOW";$("waitingText").textContent=`Both players must check in. Time remaining: ${fmt(ch.checkinExpiresAt-Date.now())}`;$ ("waitingBox").classList.remove("hidden");}
+  $("waitingBox").classList.toggle("hidden",!(["pending","accepted"].includes(ch.status)));
   $("cancelChallenge").classList.toggle("hidden",!(ch.status==="pending"&&me.id===ch.attackerId));
-  $("attackerCheckin").disabled=me.id!==ch.attackerId||!!ch.checkins?.[ch.attackerId]||ch.status!=="accepted";
-  $("defenderCheckin").disabled=me.id!==ch.defenderId||!!ch.checkins?.[ch.defenderId]||ch.status!=="accepted"||!d;
+  $("attackerCheckin").disabled=me.id!==ch.attackerId||!!ch.checkins?.[ch.attackerId];
+  $("defenderCheckin").disabled=me.id!==ch.defenderId||!!ch.checkins?.[ch.defenderId]||!d;
   $("attackerCheckState").textContent=ch.checkins?.[ch.attackerId]?"✓ Checked in":"Not checked in";
   $("defenderCheckState").textContent=ch.checkins?.[ch.defenderId]?"✓ Checked in":"Not checked in";
   const ready=!!ch.checkins?.[ch.attackerId]&&!!ch.checkins?.[ch.defenderId];
   $("reportBox").classList.toggle("hidden",!ready);
-  const mine=state.reports?.[ch.id]?.[me.id];$("iWin").disabled=!!mine;$("iLose").disabled=!!mine;
-  if(ch.status==="ready")$("responseTimer").textContent="READY";
-  else if(ch.status==="reported")$("responseTimer").textContent="RESULT SUBMITTED";
-  else if(ch.status==="disputed")$("responseTimer").textContent="ADMIN REVIEW";
+  const reports=state.reports?.[ch.id]||{},mine=reports[me.id],otherId=me.id===ch.attackerId?ch.defenderId:ch.attackerId,other=reports[otherId];
+  $("iWin").disabled=!(ready&&["ready","reported","disputed"].includes(ch.status));$("iLose").disabled=!(ready&&["ready","reported","disputed"].includes(ch.status));
+  if(ch.status==="disputed")$("resultStatus").textContent="DISPUTE: You and your opponent selected different winners. The admin will decide. You can still correct an accidental selection before the admin finalizes it.";
+  else if(mine&&other)$("resultStatus").textContent=mine.winnerId===other.winnerId?"Both players agree. Finalizing result…":"Your report and your opponent’s report differ.";
+  else if(mine)$("resultStatus").textContent=`You reported ${mine.result.toUpperCase()}. You can change your selection while waiting for your opponent.`;
+  else if(other)$("resultStatus").textContent=`Your opponent reported ${other.result.toUpperCase()}. Select the result you believe is correct.`;
+  else $("resultStatus").textContent="No result reported yet.";
+  const hasSingleReport=Object.keys(reports).length===1&&ch.status==="reported";
+  $("resultTimer").classList.toggle("hidden",!hasSingleReport);
   renderChat(ch.chat||[]);show("matchModal");
   clearInterval(challengeTicker);
-  if(ch.status==="pending"||ch.status==="accepted")challengeTicker=setInterval(()=>{
-    const deadline=ch.status==="pending"?ch.expiresAt:ch.checkinExpiresAt;
-    const remain=Number(deadline||0)-Date.now();
-    $("responseTimer").textContent=fmtCountdown(remain);
-    if(ch.status==="accepted")$("waitingText").textContent=remain>0?`Both players must check in. Time remaining: ${fmtCountdown(remain)}`:"Check-in deadline reached. Processing result…";
-    if(remain<=0)clearInterval(challengeTicker);
+  if(["pending","accepted","reported"].includes(ch.status))challengeTicker=setInterval(()=>{
+    const current=state?.challenges?.[ch.id]||ch;
+    if(current.status==="pending"||current.status==="accepted"){
+      const deadline=current.status==="pending"?current.expiresAt:current.checkinExpiresAt;const remain=Number(deadline||0)-Date.now();$("responseTimer").textContent=fmt(remain);if(current.status==="accepted")$("waitingText").textContent=`Both players must check in. Time remaining: ${fmt(remain)}`;
+    }
+    const rr=state?.reports?.[ch.id]||{},single=Object.keys(rr).length===1&&current.status==="reported";
+    $("resultTimer").classList.toggle("hidden",!single);
+    if(single){const first=Object.values(rr)[0],deadline=Number(current.resultDeadline||first.time+600000);const left=Math.max(0,deadline-Date.now());$("resultTimeLeft").textContent=fmt(left).slice(3);}
+    if(!["pending","accepted","reported"].includes(current.status))clearInterval(challengeTicker);
   },250);
 }
 $("cancelChallenge").onclick=()=>{if(!activeChallenge)return;if(!confirm("Cancel this challenge?"))return;socket.emit("challengeCancel",activeChallenge.id,r=>{if(!r?.ok)return toast(r?.error||"Cancel failed.");activeChallenge=null;hide("matchModal");toast("Challenge cancelled.");renderAll()})};
 $("attackerCheckin").onclick=$("defenderCheckin").onclick=()=>socket.emit("checkin",activeChallenge.id,r=>{if(!r?.ok)toast(r?.error||"Check-in failed.")});
 $("iWin").onclick=()=>report("win");$("iLose").onclick=()=>report("loss");
-function report(result){socket.emit("reportResult",activeChallenge.id,result,r=>{if(!r?.ok)toast(r?.error||"Report failed.");else toast("Result submitted.")})}
+function report(result){if(!activeChallenge)return;socket.emit("reportResult",activeChallenge.id,result,r=>{if(!r?.ok)toast(r?.error||"Report failed.");else{toast(r.updated?"Your result selection was updated.":"Result submitted.");const fresh=state?.challenges?.[activeChallenge.id];if(fresh){activeChallenge=fresh;openMatch()}}})}
 $("closeMatch").onclick=()=>hide("matchModal");
 
 function renderChat(messages){$("chatMessages").innerHTML="";messages.forEach(appendChat);$("chatMessages").scrollTop=$("chatMessages").scrollHeight}
@@ -176,12 +147,16 @@ function appendChat(m){const mine=m.playerId===me.id;const el=document.createEle
 $("chatForm").onsubmit=e=>{e.preventDefault();const v=$("chatInput").value.trim();if(!v||!activeChallenge)return;socket.emit("chat",activeChallenge.id,v,r=>{if(r?.ok)$("chatInput").value=""})};
 
 function renderAlerts(){
-  const arr=(state.notifications||[]).filter(n=>!n.kingdomId||n.kingdomId===me?.kingdom);
-  const incoming=pendingChallengesForMe();
-  const visibleAlerts=playerInActiveMatch(me?.id)?arr.filter(n=>!n.kingdomId||!/(challenged|challenge incoming|declined the challenge)/i.test(n.message||"")):arr;
-  $("alertCount").textContent=Math.min(visibleAlerts.length+incoming.length,99);
-  const html=visibleAlerts.slice(0,30).map(n=>`<div class="alert-item"><b>⚔ BATTLE ALERT</b><span>${esc(n.message)}</span><small>${new Date(n.time).toLocaleTimeString()}</small></div>`).join("");
-  $("alerts").innerHTML=html||"<div class='alert-item'>No battle alerts. Incoming challenges appear in the defense panel.</div>";
+  const arr=state.notifications||[];
+  $("alertCount").textContent=Math.min(arr.length+(window.incomingChallenge?1:0),99);
+  let html="";
+  if(window.incomingChallenge){
+    const ch=window.incomingChallenge.challenge,a=window.incomingChallenge.attacker;
+    if(ch?.status==="pending") html+=`<div class="alert-item incoming-challenge"><b>⚔ TERRITORY CHALLENGE</b><span>${esc(a?.label||"An opponent")} challenged one of your Kingdom's territories.</span><button class="gold-button small accept-incoming" data-challenge="${ch.id}">ACCEPT CHALLENGE</button></div>`;
+  }
+  html+=(arr.slice(0,30).map(n=>`<div class="alert-item"><b>⚔ BATTLE ALERT</b><span>${esc(n.message)}</span><small>${new Date(n.time).toLocaleTimeString()}</small></div>`).join(""));
+  $("alerts").innerHTML=html||"<div class='alert-item'>No battle alerts.</div>";
+  document.querySelectorAll(".accept-incoming").forEach(b=>b.onclick=()=>socket.emit("challengeAccept",b.dataset.challenge,r=>{if(!r?.ok){toast(r?.error||"Challenge acceptance failed.");return}window.incomingChallenge=null;hide("alertsPanel");activeChallenge=r.challenge;openMatch();renderAll()}));
 }
 $("alertButton").onclick=()=>{renderAlerts();show("alertsPanel")};$("closeAlerts").onclick=()=>hide("alertsPanel");$("closeFighting").onclick=()=>hide("fightingModal");
 
@@ -189,7 +164,7 @@ $("playersBtn").onclick=()=>{renderPublicPlayers();show("playersModal")};
 function renderPublicPlayers(){const list=state.playerOrder.map((id,i)=>state.players[id]).filter(Boolean);$("publicPlayers").innerHTML=list.map((p,i)=>`<div class="public-player"><div class="pnum">#${i+1}</div><div><b>${esc(p.riot||p.name)}</b><small>${p.kingdom?`${K(p.kingdom).icon} ${esc(K(p.kingdom).name)} · ${esc(p.label)}`:"Awaiting Kingdom assignment"}</small></div><span class="${p.kingdom?"assigned":"waiting"}">${p.kingdom?"ASSIGNED":"WAITING"}</span></div>`).join("")||"<div class='admin-empty'>No players registered yet.</div>"}
 
 $("scoreBtn").onclick=()=>{renderScore();hide("mapScreen");show("scoreScreen")};$("backMap").onclick=()=>{hide("scoreScreen");show("mapScreen")};
-function renderScore(){const list=state.kingdoms.map(k=>({...k,territories:tcount(k.id),players:playersFor(k.id),defense:Math.max(0,Math.min(3,Number(state.defensePoints?.[k.id]??3)))})).sort((a,b)=>b.territories-a.territories||(b.players.reduce((x,p)=>x+p.wins,0)-a.players.reduce((x,p)=>x+p.wins,0)));$("scoreGrid").innerHTML=list.map((k,i)=>{const risk=k.defense===0;const pct=(k.defense/3)*100;return `<article class="kingdom-card ${i===0?"champion":""}" style="--accent:${k.color}"><div class="kc-head"><div class="rank">${i===0?"♛":"#"+(i+1)}</div><div class="kname">${k.icon} ${esc(k.name)}<div class="defense-points ${risk?"critical":""}"><span>DEFENSE POINTS</span><b>${k.defense}/3</b>${risk?"<em>IN RISK</em>":""}</div><div class="defense-meter ${risk?"critical":""}" role="img" aria-label="Defense ${k.defense} out of 3"><span style="width:${pct}%"></span></div></div><div class="territories"><b>${k.territories}</b><span>TERRITORIES</span></div></div><div class="player-head"><span>CHAMPIONS</span><span>WINS</span><span>LOSSES</span></div>${k.players.length?k.players.map(p=>`<div class="player-row"><div class="player-name"><i>♟</i><b>${esc(playerDisplayName(p))}</b></div><strong class="wins">${p.wins}</strong><strong class="losses">${p.losses}</strong></div>`).join(""):"<div class='unassigned-row'>No players assigned yet.</div>"}</article>`}).join("")}
+function renderScore(){const list=state.kingdoms.map(k=>({...k,territories:tcount(k.id),players:playersFor(k.id),defense:Math.max(0,Math.min(3,Number(state.defensePoints?.[k.id]??3)))})).sort((a,b)=>b.territories-a.territories||(b.players.reduce((x,p)=>x+p.wins,0)-a.players.reduce((x,p)=>x+p.wins,0)));$("scoreGrid").innerHTML=list.map((k,i)=>{const risk=k.defense===0;const pct=(k.defense/3)*100;return `<article class="kingdom-card ${i===0?"champion":""}" style="--accent:${k.color}"><div class="kc-head"><div class="rank">${i===0?"♛":"#"+(i+1)}</div><div class="kname">${k.icon} ${esc(k.name)}<div class="defense-points ${risk?"critical":""}"><span>DEFENSE POINTS</span><b>${k.defense}/3</b>${risk?"<em>IN RISK</em>":""}</div><div class="defense-meter ${risk?"critical":""}" role="img" aria-label="Defense ${k.defense} out of 3"><span style="width:${pct}%"></span></div></div><div class="territories"><b>${k.territories}</b><span>TERRITORIES</span></div></div><div class="player-head"><span>CHAMPIONS</span><span>WINS</span><span>LOSSES</span></div>${k.players.length?k.players.map(p=>`<div class="player-row"><div class="player-name"><i>♟</i><b>${esc(p.label)}</b></div><strong class="wins">${p.wins}</strong><strong class="losses">${p.losses}</strong></div>`).join(""):"<div class='unassigned-row'>No players assigned yet.</div>"}</article>`}).join("")}
 
 $("profileBtn").onclick=()=>{const k=K(me.kingdom);$("profileName").textContent=me.label;$("profileData").innerHTML=[["Name",me.name],["Kingdom",k?`${k.icon} ${k.name}`:"Awaiting assignment"],["Slot",me.slot||"—"],["Wins",me.wins],["Losses",me.losses]].map(x=>`<div class="profile-row"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");show("profileModal")};
 $("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};

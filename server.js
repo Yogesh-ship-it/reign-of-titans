@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const fs = require("fs");
+const https = require("https");
 const path = require("path");
 const crypto = require("crypto");
 
@@ -37,7 +38,7 @@ function blankState(){
     for(let i=1;i<=15;i++) territories.push({id:`${k.id}-${i}`,num:i,kingdom:k.id,originalKingdom:k.id});
   });
   return {
-    version:5,
+    version:4,
     tournamentStartedAt:null,
     players:{},
     playerOrder:[],
@@ -48,59 +49,65 @@ function blankState(){
     adminEvents:[],
     completedBattles:[],
     defensePoints:Object.fromEntries(kingdoms.map(k=>[k.id,3])),
-    defenseRegenAt:Object.fromEntries(kingdoms.map(k=>[k.id,Date.now()+60*60*1000])),
-    matchUsage:{windowStart:Math.floor(Date.now()/3600000)*3600000,counts:{}}
+    matchUsage:{players:{}},lastDefenseRegenAt:Date.now(),lastOpponentByAttackingKingdom:{}
   };
 }
 function load(){
   try{
     if(fs.existsSync(DATA_FILE)){
       const parsed=JSON.parse(fs.readFileSync(DATA_FILE,"utf8"));
-      if([3,4,5].includes(parsed.version) && Array.isArray(parsed.territories) && parsed.territories.length===105){
-        let changed=false;
+      if((parsed.version>=3) && Array.isArray(parsed.territories) && parsed.territories.length===105){
         if(parsed.version===3){
-          // v3 stored accumulated unanswered counts; v4+ stores remaining Defense Points.
+          // v3 used 0/1/2 as accumulated unanswered counts. v4 uses 2/1/0 defense points.
           const old=parsed.defensePoints||{};
           parsed.defensePoints=Object.fromEntries(kingdoms.map(k=>{const n=Number(old[k.id]);return [k.id,Number.isFinite(n)?Math.max(0,Math.min(3,3-n)):3]}));
-          parsed.version=4;changed=true;
+          parsed.version=4;
+          save(parsed);
         }
-        if(parsed.version===4){parsed.version=5;changed=true;}
-        if(!parsed.defensePoints || typeof parsed.defensePoints!=="object"){
-          parsed.defensePoints=Object.fromEntries(kingdoms.map(k=>[k.id,3]));changed=true;
-        }
-        if(!parsed.defenseRegenAt || typeof parsed.defenseRegenAt!=="object"){
-          parsed.defenseRegenAt=Object.fromEntries(kingdoms.map(k=>[k.id,Date.now()+60*60*1000]));changed=true;
-        }
-        kingdoms.forEach(k=>{
-          if(!Number.isFinite(Number(parsed.defensePoints[k.id]))){parsed.defensePoints[k.id]=3;changed=true;}
-          if(!Number.isFinite(Number(parsed.defenseRegenAt[k.id]))){parsed.defenseRegenAt[k.id]=Date.now()+60*60*1000;changed=true;}
-        });
-        if(changed)save(parsed);
-        return parsed;
-      }
+        return parsed
+      };
     }
   }catch(e){console.error("Data load:",e)}
   const s=blankState(); save(s); return s;
 }
 function ensureStateShape(){
   state.defensePoints=state.defensePoints||{};
-  state.defenseRegenAt=state.defenseRegenAt||{};
-  kingdoms.forEach(k=>{
-    if(!Number.isFinite(state.defensePoints[k.id])) state.defensePoints[k.id]=3;
-    state.defensePoints[k.id]=Math.max(0,Math.min(3,Math.round(state.defensePoints[k.id])));
-    if(!Number.isFinite(Number(state.defenseRegenAt[k.id]))) state.defenseRegenAt[k.id]=Date.now()+60*60*1000;
-  });
-  if(!state.matchUsage || typeof state.matchUsage!="object") state.matchUsage={windowStart:Math.floor(Date.now()/3600000)*3600000,counts:{}};
-  if(!state.matchUsage.counts || typeof state.matchUsage.counts!="object") state.matchUsage.counts={};
-  ensureMatchUsageWindow();
-}
-function ensureMatchUsageWindow(){
-  const currentWindow=Math.floor(Date.now()/3600000)*3600000;
-  if(!state.matchUsage || state.matchUsage.windowStart!==currentWindow){
-    state.matchUsage={windowStart:currentWindow,counts:{}};
-    return true;
+  kingdoms.forEach(k=>{ if(!Number.isFinite(state.defensePoints[k.id])) state.defensePoints[k.id]=3; state.defensePoints[k.id]=Math.max(0,Math.min(3,Math.round(state.defensePoints[k.id]))); });
+  if(!state.matchUsage || typeof state.matchUsage!=="object") state.matchUsage={players:{}};
+  // Migrate older shared-hour counters to personal rolling two-hour windows.
+  if(!state.matchUsage.players || typeof state.matchUsage.players!=="object"){
+    const old=state.matchUsage.counts||{};
+    state.matchUsage={players:{}};
+    for(const [pid,used] of Object.entries(old)) state.matchUsage.players[pid]={used:Number(used)||0,windowStart:null,resetAt:null};
   }
-  return false;
+  if(!Number.isFinite(state.lastDefenseRegenAt)) state.lastDefenseRegenAt=Date.now();
+  if(!state.lastOpponentByAttackingKingdom || typeof state.lastOpponentByAttackingKingdom!=="object") state.lastOpponentByAttackingKingdom={};
+}
+function usageFor(playerId){
+  const now=Date.now();
+  let u=state.matchUsage.players[playerId];
+  if(!u || typeof u!=="object") u=state.matchUsage.players[playerId]={used:0,windowStart:null,resetAt:null};
+  if(u.resetAt && now>=u.resetAt) { u.used=0;u.windowStart=null;u.resetAt=null; }
+  u.used=Math.max(0,Math.min(3,Number(u.used)||0));
+  return u;
+}
+function publicUsage(playerId){const u=usageFor(playerId);return {used:u.used,windowStart:u.windowStart||null,resetAt:u.resetAt||null,limit:3,periodMs:2*60*60*1000};}
+function canStartMatch(playerId){return usageFor(playerId).used<3;}
+function startMatchUsage(playerIds){
+  const now=Date.now();
+  for(const pid of playerIds){
+    const u=usageFor(pid);
+    if(u.used>=3)return {ok:false,playerId:pid};
+  }
+  for(const pid of playerIds){const u=usageFor(pid);if(!u.windowStart){u.windowStart=now;u.resetAt=now+2*60*60*1000;}u.used+=1;}
+  return {ok:true};
+}
+function regenerateDefensePoints(){
+  const now=Date.now(),hours=Math.floor((now-state.lastDefenseRegenAt)/3600000);
+  if(hours<=0)return false;
+  for(const k of kingdoms)state.defensePoints[k.id]=Math.min(3,Math.max(0,Number(state.defensePoints[k.id]??3))+hours);
+  state.lastDefenseRegenAt+=hours*3600000;
+  return true;
 }
 
 function save(s){fs.writeFileSync(DATA_FILE,JSON.stringify(s,null,2))}
@@ -114,7 +121,7 @@ function publicPlayer(p){
 }
 function privatePlayer(p){
   if(!p)return null;
-  return {...publicPlayer(p),gmail:p.gmail||""};
+  return {...publicPlayer(p),gmail:p.gmail||"",lastIpAddress:p.lastIpAddress||"Not recorded",lastSeenAt:p.lastSeenAt||null,lastConnectedAt:p.lastConnectedAt||null,connectionCount:Number(p.connectionCount||0),registeredAt:p.registeredAt||null,ipLocation:p.ipLocation||null};
 }
 function publicState(){
   return {
@@ -127,8 +134,7 @@ function publicState(){
     notifications:state.notifications.slice(0,100),
     kingdoms,
     defensePoints:state.defensePoints,
-    defenseRegenAt:state.defenseRegenAt,
-    matchUsage:{windowStart:state.matchUsage.windowStart,resetAt:state.matchUsage.windowStart+3600000}
+    matchUsage:{periodMs:7200000}
   };
 }
 function adminState(){
@@ -136,7 +142,7 @@ function adminState(){
     ...publicState(),
     players:Object.fromEntries(Object.entries(state.players).map(([id,p])=>[id,privatePlayer(p)])),
     completedBattles:state.completedBattles || [],
-    matchUsage:{windowStart:state.matchUsage.windowStart,resetAt:state.matchUsage.windowStart+3600000,counts:state.matchUsage.counts}
+    matchUsage:{periodMs:7200000,players:state.matchUsage.players}
   };
 }
 function socketIdsForPlayer(playerId){
@@ -145,8 +151,11 @@ function socketIdsForPlayer(playerId){
 function emitPlayer(playerId,event,payload){
   for(const sid of socketIdsForPlayer(playerId))io.to(sid).emit(event,payload)
 }
+function playerInMatch(playerId){
+  return Object.values(state.challenges).some(ch=>[ch.attackerId,ch.defenderId].includes(playerId)&&["accepted","ready","reported","disputed"].includes(ch.status));
+}
 function notifyKingdom(kid,event,payload){
-  Object.values(state.players).filter(p=>p.kingdom===kid).forEach(p=>emitPlayer(p.id,event,payload))
+  Object.values(state.players).filter(p=>p.kingdom===kid && !(event==="challengeIncoming"&&playerInMatch(p.id))).forEach(p=>emitPlayer(p.id,event,payload))
 }
 function emitAdmins(event,payload){
   for(const s of io.sockets.sockets.values()) if(s.data.isAdmin) s.emit(event,payload)
@@ -159,7 +168,7 @@ function addNotice(message,kingdomId=null){
 function broadcast(){
   save(state);io.emit("state",publicState());
   // Match counts are private to each player; only send each player their own usage.
-  for(const p of Object.values(state.players)) emitPlayer(p.id,"myMatchUsage",{used:Number(state.matchUsage.counts[p.id]||0),resetAt:state.matchUsage.windowStart+3600000});
+  for(const p of Object.values(state.players)) emitPlayer(p.id,"myMatchUsage",publicUsage(p.id));
 }
 function slotFor(kid){
   const used=Object.values(state.players).filter(p=>p.kingdom===kid).length;
@@ -169,33 +178,14 @@ function labelFor(kid,slot){return `${K(kid).name} ${String.fromCharCode(64+slot
 function activeChallengeForTerritory(tid){
   return Object.values(state.challenges).find(c=>c.territoryId===tid&&c.status!=="resolved")
 }
-const MATCH_STATUSES=new Set(["accepted","ready","reported","disputed"]);
-function playerInMatch(playerId,exceptChallengeId=null){
-  return Object.values(state.challenges).some(c=>c.id!==exceptChallengeId&&MATCH_STATUSES.has(c.status)&&(c.attackerId===playerId||c.defenderId===playerId));
-}
-function regenerateDefensePoints(now=Date.now()){
-  let changed=false;
-  for(const kingdom of kingdoms){
-    const kid=kingdom.id;
-    const points=Math.max(0,Math.min(3,Number(state.defensePoints[kid]??3)));
-    let due=Number(state.defenseRegenAt[kid]||0);
-    if(!due){due=now+60*60*1000;state.defenseRegenAt[kid]=due;changed=true;continue;}
-    if(now<due)continue;
-    if(points>=3){state.defenseRegenAt[kid]=now+60*60*1000;changed=true;continue;}
-    const elapsedHours=Math.floor((now-due)/(60*60*1000))+1;
-    const gained=Math.min(3-points,elapsedHours);
-    state.defensePoints[kid]=points+gained;
-    state.defenseRegenAt[kid]=state.defensePoints[kid]>=3?now+60*60*1000:due+gained*60*60*1000;
-    changed=true;
-  }
-  return changed;
-}
 function resolve(chId,winnerId,reason){
   const ch=state.challenges[chId],winner=state.players[winnerId];
   if(!ch||!winner)return;
   const t=state.territories.find(x=>x.id===ch.territoryId);
   if(!t)return;
   const old=t.kingdom;
+  const attackingKingdom=state.players[ch.attackerId]?.kingdom;
+  if(attackingKingdom && ch.defenderKingdom) state.lastOpponentByAttackingKingdom[attackingKingdom]=ch.defenderKingdom;
   const loserId=winnerId===ch.attackerId?ch.defenderId:ch.attackerId;
   winner.wins++;
   if(loserId&&state.players[loserId])state.players[loserId].losses++;
@@ -205,7 +195,7 @@ function resolve(chId,winnerId,reason){
   state.completedBattles=state.completedBattles||[];
   state.completedBattles.unshift(completed);
   state.completedBattles=state.completedBattles.slice(0,200);
-  addNotice(`${winner.riot||winner.name||winner.label} captured Territory ${t.num} of ${K(old).name}.`);
+  addNotice(`${winner.label} captured Territory ${t.num} of ${K(old).name}.`);
   emitAdmins("battleResolved",completed);
   io.emit("challengeResolved",{challenge:ch,territory:t,winner:publicPlayer(winner)});
   delete state.challenges[chId];delete state.reports[chId];
@@ -242,22 +232,35 @@ function expireCheckin(chId){
 function evaluate(chId){
   const ch=state.challenges[chId],r=state.reports[chId]||{};
   if(!ch)return;
+  const entries=Object.values(r);
   const a=r[ch.attackerId],d=r[ch.defenderId];
-  if(a&&d&&a.winnerId!==d.winnerId){
+  if(a&&d){
+    if(a.winnerId===d.winnerId){
+      resolve(chId,a.winnerId,"Both players reported the same winner; result automatically confirmed.");
+      return;
+    }
     ch.status="disputed";
-    ch.disputedAt=Date.now();
+    ch.disputedAt=ch.disputedAt||Date.now();
     emitAdmins("battleDisputed",ch);
+    io.emit("resultReported",{challenge:ch,reports:r});
     broadcast();
     return;
   }
-  // Matching reports still go through the normal 5-minute admin review window.
-  // The first submitted winner is auto-confirmed only when that window expires.
+  if(entries.length===1){
+    ch.status="reported";
+    if(!ch.firstReportAt) ch.firstReportAt=entries[0].time;
+    if(!ch.resultDeadline) ch.resultDeadline=ch.firstReportAt+10*60*1000;
+  }
+  io.emit("resultReported",{challenge:ch,reports:r});
+  emitAdmins("resultReportedAdmin",{challenge:ch,reports:r});
+  broadcast();
 }
+
 setInterval(()=>{
   const now=Date.now();
-  const defenseChanged=regenerateDefensePoints(now);
-  const usageChanged=ensureMatchUsageWindow();
-  if(defenseChanged||usageChanged)broadcast();
+  let changed=regenerateDefensePoints();
+  for(const p of Object.values(state.players)) { const before=state.matchUsage.players[p.id]?.used; usageFor(p.id); if(before!==state.matchUsage.players[p.id]?.used) changed=true; }
+  if(changed)broadcast();
   for(const ch of Object.values(state.challenges)){
     if(ch.status==="pending"&&now>=ch.expiresAt)expirePendingChallenge(ch.id);
     if(ch.status==="accepted"&&ch.checkinExpiresAt&&now>=ch.checkinExpiresAt)expireCheckin(ch.id);
@@ -265,7 +268,8 @@ setInterval(()=>{
       const entries=Object.values(state.reports[ch.id]||{});
       if(entries.length===1){
         const first=entries[0];
-        if(now>=first.time+5*60*1000&&first.winnerId)resolve(ch.id,first.winnerId,"Five-minute admin window expired; reported winner automatically confirmed.");
+        const deadline=Number(ch.resultDeadline||first.time+10*60*1000);
+        if(now>=deadline&&first.winnerId)resolve(ch.id,first.winnerId,"Opponent did not report a result within ten minutes; the submitted result was automatically confirmed.");
       }
     }
   }
@@ -275,9 +279,73 @@ app.use(express.json());
 app.get("/admin",(req,res)=>res.sendFile(path.join(__dirname,"public","admin.html")));
 app.use(express.static(path.join(__dirname,"public")));
 
+function clientIp(socket){
+  // Use proxy headers only when explicitly configured for a trusted reverse proxy.
+  // Otherwise use the socket peer address to avoid trusting spoofed X-Forwarded-For values.
+  if(process.env.TRUST_PROXY === "true"){
+    const forwarded=String(socket.handshake.headers["x-forwarded-for"]||"").split(",")[0].trim();
+    if(forwarded) return forwarded.slice(0,100);
+  }
+  return String(socket.handshake.address||"Unknown").replace(/^::ffff:/,"").slice(0,100);
+}
+
+const geoCache=new Map();
+function isPublicIp(ip){
+  if(!ip || ip==="Unknown" || ip==="127.0.0.1" || ip==="::1") return false;
+  if(/^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return false;
+  return true;
+}
+function lookupIpLocation(ip){
+  return new Promise(resolve=>{
+    if(!isPublicIp(ip)) return resolve(null);
+    if(geoCache.has(ip)) return resolve(geoCache.get(ip));
+    const req=https.get(`https://ipapi.co/${encodeURIComponent(ip)}/json/`,{timeout:3500,headers:{"User-Agent":"ReignOfTitanTournament/1.0"}},res=>{
+      let body="";
+      res.on("data",chunk=>body+=chunk);
+      res.on("end",()=>{
+        try{
+          const d=JSON.parse(body);
+          const lat=Number(d.latitude),lon=Number(d.longitude);
+          const result=(!d.error && Number.isFinite(lat) && Number.isFinite(lon))?{
+            city:String(d.city||"").slice(0,100),
+            region:String(d.region||"").slice(0,100),
+            country:String(d.country_name||d.country||"").slice(0,100),
+            latitude:lat,longitude:lon,
+            source:"IP geolocation",
+            updatedAt:Date.now()
+          }:null;
+          geoCache.set(ip,result);resolve(result);
+        }catch{resolve(null)}
+      });
+    });
+    req.on("timeout",()=>{req.destroy();resolve(null)});
+    req.on("error",()=>resolve(null));
+  });
+}
+async function updatePlayerGeo(playerId,ip){
+  const p=state.players[playerId]; if(!p || !isPublicIp(ip)) return;
+  const location=await lookupIpLocation(ip);
+  if(!location || !state.players[playerId]) return;
+  // Avoid applying a slow response to a newer connection from another IP.
+  if(state.players[playerId].lastIpAddress!==ip) return;
+  state.players[playerId].ipLocation=location;
+  save(state);
+  emitAdmins("playerConnectionUpdated",{playerId,ipLocation:location});
+}
+
+function touchPlayerConnection(playerId,socket){
+  const p=state.players[playerId]; if(!p)return;
+  p.lastIpAddress=clientIp(socket);
+  p.lastSeenAt=Date.now();
+  p.lastConnectedAt=Date.now();
+  p.connectionCount=Math.max(0,Number(p.connectionCount||0))+1;
+  save(state);
+  updatePlayerGeo(playerId,p.lastIpAddress).catch(()=>{});
+}
+
 io.on("connection",socket=>{
   socket.on("resume",id=>{
-    if(state.players[id]){socket.data.playerId=id;socket.emit("registered",{player:publicPlayer(state.players[id]),state:publicState()});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[id]||0),resetAt:state.matchUsage.windowStart+3600000})}
+    if(state.players[id]){socket.data.playerId=id;touchPlayerConnection(id,socket);socket.emit("registered",{player:publicPlayer(state.players[id]),state:publicState()});socket.emit("myMatchUsage",publicUsage(id))}
     else socket.emit("resumeFailed")
   });
 
@@ -286,11 +354,12 @@ io.on("connection",socket=>{
     if(!riot||!discord)return cb?.({ok:false,error:"Enter both your in-game name and Discord ID."});
     const norm=v=>String(v||"").trim().toLowerCase();
     const existing=Object.values(state.players).find(p=>norm(p.riot)===norm(riot)&&norm(p.discord)===norm(discord));
-    if(existing){socket.data.playerId=existing.id;socket.emit("registered",{player:publicPlayer(existing),state:publicState()});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[existing.id]||0),resetAt:state.matchUsage.windowStart+3600000});return cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true});}
+    if(existing){socket.data.playerId=existing.id;touchPlayerConnection(existing.id,socket);socket.emit("registered",{player:publicPlayer(existing),state:publicState()});socket.emit("myMatchUsage",publicUsage(existing.id));return cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true});}
     const id=crypto.randomUUID();
-    state.players[id]={id,name:riot,gmail:"",riot,discord,kingdom:null,slot:null,label:"Awaiting Kingdom Assignment",wins:0,losses:0,registeredAt:Date.now()};
+    state.players[id]={id,name:riot,gmail:"",riot,discord,kingdom:null,slot:null,label:"Awaiting Kingdom Assignment",wins:0,losses:0,registeredAt:Date.now(),lastIpAddress:clientIp(socket),lastSeenAt:Date.now(),lastConnectedAt:Date.now(),connectionCount:1};
     state.playerOrder.push(id);socket.data.playerId=id;save(state);
-    cb?.({ok:true,player:publicPlayer(state.players[id]),state:publicState(),existing:false});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[id]||0),resetAt:state.matchUsage.windowStart+3600000});
+    updatePlayerGeo(id,state.players[id].lastIpAddress).catch(()=>{});
+    cb?.({ok:true,player:publicPlayer(state.players[id]),state:publicState(),existing:false});socket.emit("myMatchUsage",publicUsage(id));
     io.emit("playerRegistered",publicPlayer(state.players[id]));broadcast();
   });
 
@@ -322,7 +391,7 @@ io.on("connection",socket=>{
     if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
     const player=state.players[playerId];if(!player)return cb?.({ok:false,error:"Player not found."});
     for(const ch of Object.values(state.challenges))if(ch.attackerId===playerId||ch.defenderId===playerId){delete state.challenges[ch.id];delete state.reports[ch.id];io.emit("challengeCancelled",{challengeId:ch.id,territoryId:ch.territoryId});}
-    delete state.matchUsage.counts[playerId];delete state.players[playerId];state.playerOrder=state.playerOrder.filter(id=>id!==playerId);
+    delete state.matchUsage.players[playerId];delete state.players[playerId];state.playerOrder=state.playerOrder.filter(id=>id!==playerId);
     state.adminEvents.unshift({time:Date.now(),action:"removePlayer",playerId,label:player.label||player.name});state.adminEvents=state.adminEvents.slice(0,200);
     addNotice(`Admin removed ${player.label||player.name} from the active tournament.`);broadcast();cb?.({ok:true,state:adminState()});
   });
@@ -351,19 +420,19 @@ io.on("connection",socket=>{
   });
 
   socket.on("challengeCreate",(tid,cb)=>{
-    if(ensureMatchUsageWindow())broadcast();
+    if(regenerateDefensePoints())broadcast();
     const attacker=state.players[socket.data.playerId],t=state.territories.find(x=>x.id===tid);
     if(!attacker||!t)return cb?.({ok:false,error:"Invalid player or territory."});
     if(!attacker.kingdom)return cb?.({ok:false,error:"Your Kingdom has not been assigned by the admin yet."});
-    if(playerInMatch(attacker.id))return cb?.({ok:false,error:"You are already in a match and cannot start another challenge."});
+    if(playerInMatch(attacker.id))return cb?.({ok:false,error:"You are already in a match."});
+    if(Object.values(state.challenges).some(other=>["accepted","ready","reported","disputed"].includes(other.status)&&(other.attackerKingdom===attacker.kingdom||other.defenderKingdom===attacker.kingdom)))return cb?.({ok:false,error:"Your Kingdom is already participating in another match."});
     if(t.kingdom===attacker.kingdom)return cb?.({ok:false,error:"You cannot attack your own Kingdom."});
     if(activeChallengeForTerritory(tid))return cb?.({ok:false,error:"That territory is already under challenge."});
-    const used=Number(state.matchUsage.counts[attacker.id]||0);
-    if(used>=3)return cb?.({ok:false,error:"You have used all 3 matches for this hour. Your match limit resets at the next hour."});
-    const ch={id:crypto.randomUUID(),territoryId:tid,attackerId:attacker.id,defenderKingdom:t.kingdom,defenderId:null,status:"pending",
+    if(state.lastOpponentByAttackingKingdom[attacker.kingdom]===t.kingdom)return cb?.({ok:false,error:"Your Kingdom must complete a match against a different Kingdom before challenging this Kingdom again."});
+    if(!canStartMatch(attacker.id))return cb?.({ok:false,error:"You have used all 3 matches in your personal two-hour period."});
+    const ch={id:crypto.randomUUID(),territoryId:tid,attackerId:attacker.id,attackerKingdom:attacker.kingdom,defenderKingdom:t.kingdom,defenderId:null,status:"pending",
       createdAt:Date.now(),expiresAt:Date.now()+15*60*1000,checkins:{},chat:[]};
-    state.matchUsage.counts[attacker.id]=used+1;
-    state.challenges[ch.id]=ch;addNotice(`${attacker.riot||attacker.name||attacker.label} challenged Territory ${t.num} of ${K(t.kingdom).name}.`,t.kingdom);
+    state.challenges[ch.id]=ch;addNotice(`${attacker.label} challenged Territory ${t.num} of ${K(t.kingdom).name}.`,t.kingdom);
     emitAdmins("challengeRequest",{challenge:ch,attacker:publicPlayer(attacker),territory:t,defenderKingdom:K(t.kingdom)});
     notifyKingdom(t.kingdom,"challengeIncoming",{challenge:ch,attacker:publicPlayer(attacker),territory:t,defenderKingdom:K(t.kingdom)});
     broadcast();cb?.({ok:true,challenge:ch});
@@ -379,69 +448,70 @@ io.on("connection",socket=>{
     io.emit("challengeCancelled",{challengeId:id,territoryId:ch.territoryId});
     broadcast();cb?.({ok:true});
   });
+  socket.on("challengeDecline",(id,cb)=>{
+    const p=state.players[socket.data.playerId],ch=state.challenges[id];
+    if(!p||!ch||ch.status!=="pending")return cb?.({ok:false,error:"This challenge is no longer pending."});
+    if(p.kingdom!==ch.defenderKingdom)return cb?.({ok:false,error:"Only a member of the defending Kingdom can decline."});
+    const kid=ch.defenderKingdom;
+    state.defensePoints[kid]=Math.max(0,Number(state.defensePoints[kid]??3)-1);
+    const t=state.territories.find(x=>x.id===ch.territoryId);
+    delete state.challenges[id];delete state.reports[id];
+    addNotice(`${p.label} declined the challenge. ${K(kid).name} lost 1 Defense Point.`,kid);
+    io.emit("challengeCancelled",{challengeId:id,territoryId:ch.territoryId,reason:"declined",declinedBy:p.id,defenderKingdom:kid});
+    broadcast();cb?.({ok:true,defensePoints:state.defensePoints[kid]});
+  });
   socket.on("challengeAccept",(id,cb)=>{
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
     if(!p||!ch)return cb?.({ok:false,error:"Challenge not found."});
     if(ch.status!=="pending")return cb?.({ok:false,error:"This challenge is no longer waiting for acceptance."});
-    if(Date.now()>=Number(ch.expiresAt||0)){expirePendingChallenge(id);return cb?.({ok:false,error:"The 15-minute challenge window has expired."});}
     if(p.kingdom!==ch.defenderKingdom)return cb?.({ok:false,error:"Only a player from the defending Kingdom can accept."});
-    if(playerInMatch(p.id))return cb?.({ok:false,error:"You are already in a match and cannot accept another challenge."});
-    if(playerInMatch(ch.attackerId))return cb?.({ok:false,error:"The challenger is already in another match. This challenge is no longer available."});
-    // A player cannot carry an old outgoing challenge into a new active match.
-    for(const other of Object.values(state.challenges)){
-      if(other.id!==id&&other.status==="pending"&&other.attackerId===p.id){
-        delete state.challenges[other.id];delete state.reports[other.id];
-        io.emit("challengeCancelled",{challengeId:other.id,territoryId:other.territoryId,reason:"Challenger entered another match."});
-      }
-    }
-    const acceptedAt=Date.now();
-    ch.defenderId=p.id;ch.status="accepted";ch.acceptedAt=acceptedAt;ch.checkinExpiresAt=acceptedAt+5*60*1000;ch.checkins=ch.checkins||{};
-    addNotice(`${p.riot||p.name||p.label} accepted a territory challenge.`);
+    if(playerInMatch(p.id))return cb?.({ok:false,error:"You are already in a match."});
+    if(Object.values(state.challenges).some(other=>other.id!==ch.id&&["accepted","ready","reported","disputed"].includes(other.status)&&(other.attackerKingdom===p.kingdom||other.defenderKingdom===p.kingdom)))return cb?.({ok:false,error:"Your Kingdom is already participating in another match."});
+    if(playerInMatch(ch.attackerId))return cb?.({ok:false,error:"The challenger is already in a match."});
+    if(Object.values(state.challenges).some(other=>other.id!==ch.id&&["accepted","ready","reported","disputed"].includes(other.status)&&(other.attackerKingdom===ch.attackerKingdom||other.defenderKingdom===ch.attackerKingdom)))return cb?.({ok:false,error:"The challenger's Kingdom is already participating in another match."});
+    if(!canStartMatch(ch.attackerId))return cb?.({ok:false,error:"The challenger has reached their personal match limit."});
+    if(!canStartMatch(p.id))return cb?.({ok:false,error:"You have reached your personal match limit for this two-hour period."});
+    ch.defenderId=p.id;ch.status="accepted";ch.acceptedAt=Date.now();ch.checkinExpiresAt=Date.now()+5*60*1000;
+    addNotice(`${p.label} accepted a territory challenge.`);
     emitAdmins("challengeAcceptedAdmin",{challenge:ch,defender:publicPlayer(p)});
-    broadcast();io.emit("challengeAccepted",ch);io.emit("challengeUpdated",ch);cb?.({ok:true,challenge:ch});
-  });
-  socket.on("challengeDecline",(id,cb)=>{
-    const p=state.players[socket.data.playerId],ch=state.challenges[id];
-    if(!p||!ch)return cb?.({ok:false,error:"Challenge not found or it has already been handled."});
-    if(ch.status!=="pending")return cb?.({ok:false,error:"This challenge is no longer waiting for a decision."});
-    if(p.kingdom!==ch.defenderKingdom)return cb?.({ok:false,error:"Only a player from the defending Kingdom can decline."});
-    if(playerInMatch(p.id))return cb?.({ok:false,error:"You are already in a match and cannot respond to another challenge."});
-    if(Date.now()>=Number(ch.expiresAt||0)){expirePendingChallenge(id);return cb?.({ok:false,error:"The 15-minute challenge window has expired."});}
-    const kid=ch.defenderKingdom;
-    const pointsBefore=Math.max(0,Number(state.defensePoints[kid]??3));
-    state.defensePoints[kid]=Math.max(0,pointsBefore-1);
-    if(pointsBefore>0)state.defenseRegenAt[kid]=Date.now()+60*60*1000;
-    const territory=state.territories.find(t=>t.id===ch.territoryId);
-    const result={challengeId:id,territoryId:ch.territoryId,defenderKingdom:kid,defensePoints:state.defensePoints[kid],declinedBy:publicPlayer(p)};
-    delete state.challenges[id];delete state.reports[id];
-    addNotice(`${p.riot||p.name||p.label} declined the challenge. ${K(kid).name} lost 1 Defense Point.`,kid);
-    io.emit("challengeDeclined",result);
-    state.adminEvents=state.adminEvents||[];state.adminEvents.unshift({time:Date.now(),action:"challengeDeclined",challengeId:id,territoryId:ch.territoryId,kingdomId:kid,declinedBy:p.id,defensePoints:state.defensePoints[kid]});state.adminEvents=state.adminEvents.slice(0,200);
-    emitAdmins("challengeDeclinedAdmin",{...result,territory,defenderKingdom:K(kid)});
-    broadcast();cb?.({ok:true,defensePoints:state.defensePoints[kid]});
+    broadcast();io.emit("challengeAccepted",ch);cb?.({ok:true,challenge:ch});
   });
   socket.on("checkin",(id,cb)=>{
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
     if(!p||!ch||![ch.attackerId,ch.defenderId].includes(p.id))return cb?.({ok:false,error:"You are not part of this battle."});
-    if(ch.status!=="accepted")return cb?.({ok:false,error:ch.status==="ready"?"Both players have already checked in.":"Check-in is not open for this challenge."});
-    if(ch.checkinExpiresAt&&Date.now()>=ch.checkinExpiresAt){expireCheckin(id);return cb?.({ok:false,error:"The five-minute check-in window has expired."});}
-    ch.checkins=ch.checkins||{};ch.checkins[p.id]=Date.now();
-    if(ch.checkins[ch.attackerId]&&ch.checkins[ch.defenderId]){ch.status="ready";ch.readyAt=Date.now();}
-    broadcast();io.emit("challengeUpdated",ch);cb?.({ok:true,challenge:ch});
+    if(ch.status!=="accepted"&&ch.status!=="ready")return cb?.({ok:false,error:"Check-in is not open for this challenge."});
+    if(ch.checkinExpiresAt&&Date.now()>ch.checkinExpiresAt)return cb?.({ok:false,error:"The five-minute check-in window has expired."});
+    if(ch.checkins[p.id])return cb?.({ok:true,alreadyCheckedIn:true});
+    ch.checkins[p.id]=Date.now();
+    if(ch.checkins[ch.attackerId]&&ch.checkins[ch.defenderId]){
+      const usage=startMatchUsage([ch.attackerId,ch.defenderId]);
+      if(!usage.ok){delete ch.checkins[p.id];return cb?.({ok:false,error:"A player has reached their personal match limit. The match cannot start."});}
+      ch.status="ready";ch.matchStartedAt=Date.now();
+      addNotice(`${state.players[ch.attackerId]?.label||"Attacker"} and ${state.players[ch.defenderId]?.label||"Defender"} both checked in. Match started.`);
+    }
+    broadcast();io.emit("challengeUpdated",ch);cb?.({ok:true,matchStarted:ch.status==="ready"});
   });
   socket.on("reportResult",(id,result,cb)=>{
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
     if(!p||!ch||!ch.defenderId)return cb?.({ok:false,error:"Battle is not accepted yet."});
     if(!ch.checkins[ch.attackerId]||!ch.checkins[ch.defenderId])return cb?.({ok:false,error:"Both players must check in first."});
     if(!["win","loss"].includes(result))return cb?.({ok:false,error:"Invalid result."});
+    if(!["ready","reported","disputed"].includes(ch.status))return cb?.({ok:false,error:"This result can no longer be changed."});
     state.reports[id]=state.reports[id]||{};
-    if(state.reports[id][p.id])return cb?.({ok:false,error:"You already reported your result."});
+    const now=Date.now();
+    const existing=state.reports[id][p.id];
+    // If the only report's 10-minute deadline has already passed, finalize it before accepting a late response.
+    const currentEntries=Object.entries(state.reports[id]);
+    if(ch.status==="reported"&&currentEntries.length===1&&currentEntries[0][0]!==p.id&&now>=Number(ch.resultDeadline||currentEntries[0][1].time+10*60*1000)){
+      resolve(id,currentEntries[0][1].winnerId,"Opponent did not report a result within ten minutes; the submitted result was automatically confirmed.");
+      return cb?.({ok:false,error:"The reporting deadline expired and the other player's result was already finalized."});
+    }
     const winnerId=result==="win"?p.id:(p.id===ch.attackerId?ch.defenderId:ch.attackerId);
-    state.reports[id][p.id]={result,winnerId,time:Date.now()};
-    ch.status="reported";ch.firstReportAt=ch.firstReportAt||Date.now();
-    io.emit("resultReported",{challenge:ch,reports:state.reports[id]});
-    emitAdmins("resultReportedAdmin",{challenge:ch,reports:state.reports[id]});
-    evaluate(id);broadcast();cb?.({ok:true});
+    state.reports[id][p.id]={result,winnerId,time:now,updated:!!existing};
+    if(ch.status!=="disputed")ch.status="reported";
+    if(!ch.firstReportAt)ch.firstReportAt=now;
+    if(Object.keys(state.reports[id]).length===1&&!ch.resultDeadline)ch.resultDeadline=now+10*60*1000;
+    evaluate(id);broadcast();cb?.({ok:true,updated:!!existing});
   });
   socket.on("chat",(id,message,cb)=>{
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
@@ -472,8 +542,17 @@ io.on("connection",socket=>{
     emitAdmins("reportDenied",{challenge:ch,playerId});
     broadcast();cb?.({ok:true});
   });
+
+  socket.on("disconnect",()=>{
+    const playerId=socket.data.playerId;
+    if(playerId && state.players[playerId]){
+      state.players[playerId].lastSeenAt=Date.now();
+      save(state);
+      emitAdmins("playerConnectionUpdated",{playerId,lastSeenAt:state.players[playerId].lastSeenAt});
+    }
+  });
 });
 
-app.get("/api/health",(req,res)=>res.json({ok:true,version:3}));
+app.get("/api/health",(req,res)=>res.json({ok:true,version:2}));
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 server.listen(PORT,()=>console.log(`Kingdom Conquest running on http://localhost:${PORT}`));

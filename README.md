@@ -1,4 +1,4 @@
-# Kingdom Conquest · Reign of Titan v1.8
+# Kingdom Conquest v1.5 Final
 
 Player + Admin tournament prototype.
 
@@ -9,12 +9,15 @@ Player + Admin tournament prototype.
 - Titan’s Keep is central and has no territory flags
 - Territory challenge, blinking pending state, fighting-currently panel, battle resolution, and live ownership color changes
 - Three initiated matches per player per shared clock-hour window, with public match usage and a live reset countdown
-- Fifteen-minute defender response timer; any available defender can accept or decline
-- A decline removes the challenge for the whole defending Kingdom and deducts one shared Defense Point
-- Shared Defense Points regenerate by one point per hour up to 3/3, with a visible IN RISK state at 0/3
-- Server-timestamped five-minute check-in countdown starts on acceptance and stops when both players check in
-- Walkover win when exactly one player checks in; no automatic winner if neither checks in
-- Actual in-game player names appear in challenge notices and match panels
-- Players already in an accepted/ready/review match cannot start or accept another match
+- Fifteen-minute defender response timer
 - Admin ID: kamleshhhh
 - Admin password: kamlesh078
+
+
+## Admin player location map
+
+The authenticated Admin > Personal Information page includes an approximate IP-geolocation map. When a player registers or reconnects, the server records the connection IP and requests approximate city/region/country coordinates from ipapi.co over HTTPS. Location lookup is best-effort; private/local IPs, unavailable lookups, VPNs, mobile carriers, and hosting proxies may prevent or distort results. The map uses Leaflet with OpenStreetMap tiles and requires an internet connection in the admin browser.
+
+Only the authenticated admin state exposes IP and location data. Tell players that connection IPs are collected for tournament security, limit access to trusted admins, and retain this data only as long as needed. Do not treat IP location as a precise physical location or proof of identity.
+
+If your host sits behind a reverse proxy, configure `TRUST_PROXY=true` only when the hosting proxy is trusted and overwrites `X-Forwarded-For`. Otherwise the server deliberately uses the direct socket address to avoid trusting spoofable forwarding headers.

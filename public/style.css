@@ -72,23 +72,17 @@
 .remove-player{border:1px solid #a94444;background:#4b1717;color:#fff;border-radius:6px;padding:8px 11px;font-weight:800;cursor:pointer;margin:6px 0}
 .remove-player:hover{background:#742222}
 
+/* Match result confirmation and dispute feedback */
+.result-status{margin:12px 0;padding:12px 14px;border:1px solid rgba(230,173,46,.35);border-radius:10px;background:rgba(230,173,46,.08);color:#f4d58a;font-size:.9rem;line-height:1.45}
+.result-timer{margin:10px 0;padding:10px 14px;border-radius:10px;background:rgba(227,74,36,.12);border:1px solid rgba(227,74,36,.35);color:#ffb49f;font-size:.8rem;letter-spacing:.06em}
+.result-timer strong{display:inline-block;margin-left:6px;color:#fff;font-size:1.1rem;font-variant-numeric:tabular-nums}
 
-/* Kingdom-wide incoming challenges and synchronized response countdowns */
-.defense-dashboard{max-height:88vh;overflow:auto;text-align:left}
-.defense-dashboard>h2{text-align:center}
-.defense-intro{color:#9aa8b5;font-size:12px;line-height:1.6;text-align:center;margin:0 0 18px}
-.defense-challenge-list{display:grid;gap:12px;margin-top:14px}
-.defense-challenge-card{background:linear-gradient(145deg,#101923,#090e14);border:1px solid #3a4653;border-left:3px solid #d9ad51;border-radius:8px;padding:15px}
-.defense-challenge-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.defense-challenge-top b{font-family:Cinzel,serif;color:#f2d58d;font-size:13px;line-height:1.5}
-.defense-challenge-top small{white-space:nowrap;color:#91a0ae;font-size:10px}
-.defense-challenge-card p{color:#9aa7b4;font-size:11px;line-height:1.5;margin:9px 0 0}
-.defense-challenge-card .dashboard-timer{font-size:clamp(1.7rem,5vw,2.3rem);text-align:center;margin:12px auto;color:#e8bd62}
-.defense-challenge-card .dashboard-timer.urgent{color:#ff4b55;text-shadow:0 0 12px #ff26364f}
-.defense-challenge-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.defense-challenge-actions button{width:100%;min-height:42px;font-size:10px;font-weight:900;letter-spacing:.08em}
-.decline-button{border:1px solid #8c3941;background:#35151b;color:#ffadb3;border-radius:5px;padding:11px 16px;cursor:pointer}
-.decline-button:hover{background:#511b24;border-color:#d4515c}
-#defenseKingdomPoints .defense-points{margin-top:12px}
-#defenseKingdomPoints .defense-meter{max-width:none}
-@media(max-width:560px){.defense-dashboard{padding:20px}.defense-challenge-top{display:block}.defense-challenge-top small{display:block;margin-top:4px}.defense-challenge-actions{grid-template-columns:1fr 1fr}}
+/* Admin IP geolocation map */
+.ip-location-map{width:100%;height:420px;min-height:320px;border:1px solid #34404e;border-radius:10px;overflow:hidden;background:#0b1119;z-index:1}
+.ip-map-legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 14px;color:#aeb8c6;font-size:12px}
+.ip-location-list{display:grid;gap:8px}
+.ip-location-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px;border:1px solid #283342;border-radius:8px;background:#080d14}
+.ip-location-row .pmain,.ip-location-row .passign{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ip-location-row .pmain small,.ip-location-row .passign small{color:#8c97a6;font-size:11px;overflow-wrap:anywhere}
+.ip-location-row .passign{text-align:right}
+@media(max-width:650px){.ip-location-map{height:330px}.ip-location-row{align-items:flex-start;flex-direction:column}.ip-location-row .passign{text-align:left}}
