@@ -63,3 +63,11 @@
 .defense-meter.critical{background:#35151a;border-color:rgba(255,70,80,.35)}
 .defense-meter.critical span{background:#ff3e4d;box-shadow:0 0 10px rgba(255,45,60,.75)}
 .defense-points.critical b{color:#ff4c59}
+/* Challenge defense and walkover dashboards */
+.defense-dashboard{width:min(620px,92vw);text-align:center;padding:30px;box-sizing:border-box;border:1px solid #b88b3b;box-shadow:0 24px 90px #000b}
+.defense-dashboard h2,.walkover-card h2{font-family:Cinzel,serif;letter-spacing:.04em}
+.dashboard-timer{font-size:clamp(2rem,6vw,3rem);font-weight:900;letter-spacing:.08em;color:#e8bd62;margin:18px auto}
+.walkover-card{text-align:center;border:1px solid #b88b3b;padding:28px;box-sizing:border-box}
+.walkover-card .fighting-icon{font-size:3rem;margin-bottom:10px}
+.remove-player{border:1px solid #a94444;background:#4b1717;color:#fff;border-radius:6px;padding:8px 11px;font-weight:800;cursor:pointer;margin:6px 0}
+.remove-player:hover{background:#742222}

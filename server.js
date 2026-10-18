@@ -92,11 +92,11 @@ ensureStateShape();
 function K(id){return kingdoms.find(k=>k.id===id)}
 function publicPlayer(p){
   if(!p)return null;
-  return {id:p.id,name:p.name,kingdom:p.kingdom,slot:p.slot,label:p.label,wins:p.wins,losses:p.losses,status:p.kingdom?"Assigned":"Awaiting Kingdom"};
+  return {id:p.id,name:p.name,riot:p.riot,discord:p.discord,kingdom:p.kingdom,slot:p.slot,label:p.label,wins:p.wins,losses:p.losses,status:p.kingdom?"Assigned":"Awaiting Kingdom"};
 }
 function privatePlayer(p){
   if(!p)return null;
-  return {...publicPlayer(p),gmail:p.gmail,riot:p.riot,discord:p.discord};
+  return {...publicPlayer(p),gmail:p.gmail||""};
 }
 function publicState(){
   return {
@@ -174,28 +174,31 @@ function resolve(chId,winnerId,reason){
 function expirePendingChallenge(chId){
   const ch=state.challenges[chId];
   if(!ch||ch.status!=="pending")return;
-  const t=state.territories.find(x=>x.id===ch.territoryId);
   const attacker=state.players[ch.attackerId];
-  if(!t||!attacker){delete state.challenges[chId];broadcast();return;}
-  const defendingKingdom=ch.defenderKingdom;
-  const current=Math.max(0,Math.min(3,Number(state.defensePoints[defendingKingdom] ?? 3)));
-  if(current===0){
-    const old=t.kingdom;
-    t.kingdom=attacker.kingdom;
-    // Fourth unanswered challenge gives the challenger the free win and resets defense to 3.
-    state.defensePoints[defendingKingdom]=3;
-    ch.status="resolved";ch.winnerId=attacker.id;ch.resolutionReason="Third unanswered challenge: territory forfeited by Defense Point rule.";ch.resolvedAt=Date.now();
-    const completed={...ch,territory:{...t},winner:publicPlayer(attacker),reports:{},completedAt:Date.now()};
-    state.completedBattles=state.completedBattles||[];state.completedBattles.unshift(completed);state.completedBattles=state.completedBattles.slice(0,200);
-    addNotice(`${K(old).name} reached 0 Defense Points. Territory ${t.num} was forfeited to ${K(attacker.kingdom).name}; Defense Points reset to 3.`);
-    emitAdmins("battleResolved",completed);io.emit("challengeResolved",{challenge:ch,territory:t,winner:publicPlayer(attacker)});
-  }else{
-    state.defensePoints[defendingKingdom]=current-1;
-    addNotice(`${K(defendingKingdom).name} did not accept the challenge within 15 minutes. Defense Points: ${state.defensePoints[defendingKingdom]}.`,defendingKingdom);
-    emitAdmins("challengeExpired",{challenge:ch,defensePoints:state.defensePoints[defendingKingdom]});
-  }
-  delete state.challenges[chId];delete state.reports[chId];broadcast();
+  if(!attacker){delete state.challenges[chId];delete state.reports[chId];broadcast();return;}
+  ch.walkover=true;
+  resolve(chId,attacker.id,"Victory by walkover: defender did not accept within 15 minutes.");
+  emitPlayer(attacker.id,"walkover",{challengeId:chId,title:"VICTORY BY WALKOVER!",message:"Your opponent did not accept the challenge within 15 minutes."});
+  if(ch.defenderKingdom)notifyKingdom(ch.defenderKingdom,"walkover",{challengeId:chId,title:"CHALLENGE EXPIRED",message:"The challenge expired because it was not accepted within 15 minutes."});
 }
+function expireCheckin(chId){
+  const ch=state.challenges[chId];
+  if(!ch||ch.status!=="accepted")return;
+  const a=!!ch.checkins?.[ch.attackerId], d=!!ch.checkins?.[ch.defenderId];
+  if(a&&d){ch.status="ready";broadcast();return;}
+  if(a===d){
+    const payload={challengeId:chId,title:"NO-SHOW",message:"Neither player checked in within five minutes. The match was recorded as a no-show."};
+    [ch.attackerId,ch.defenderId].filter(Boolean).forEach(pid=>emitPlayer(pid,"walkover",payload));
+    state.completedBattles=state.completedBattles||[];state.completedBattles.unshift({...ch,status:"no-show",resolutionReason:payload.message,completedAt:Date.now()});
+    delete state.challenges[chId];delete state.reports[chId];broadcast();return;
+  }
+  const winnerId=a?ch.attackerId:ch.defenderId;
+  const loserId=a?ch.defenderId:ch.attackerId;
+  resolve(chId,winnerId,"Victory by walkover: opponent failed to check in within five minutes.");
+  emitPlayer(winnerId,"walkover",{challengeId:chId,title:"VICTORY BY WALKOVER!",message:"Your opponent did not check in within five minutes."});
+  if(loserId)emitPlayer(loserId,"walkover",{challengeId:chId,title:"DEFEAT BY WALKOVER",message:"You did not check in within five minutes."});
+}
+
 function evaluate(chId){
   const ch=state.challenges[chId],r=state.reports[chId]||{};
   if(!ch)return;
@@ -215,6 +218,7 @@ setInterval(()=>{
   if(ensureMatchUsageWindow())broadcast();
   for(const ch of Object.values(state.challenges)){
     if(ch.status==="pending"&&now>=ch.expiresAt)expirePendingChallenge(ch.id);
+    if(ch.status==="accepted"&&ch.checkinExpiresAt&&now>=ch.checkinExpiresAt)expireCheckin(ch.id);
     if(ch.status==="reported"){
       const entries=Object.values(state.reports[ch.id]||{});
       if(entries.length===1){
@@ -236,18 +240,16 @@ io.on("connection",socket=>{
   });
 
   socket.on("register",(d,cb)=>{
-    const fields=["name","gmail","riot","discord"];
-    if(!d||fields.some(f=>!String(d[f]||"").trim()))return cb?.({ok:false,error:"Please complete all registration fields."});
-    const email=String(d.gmail).trim().toLowerCase();
-    const existing=Object.values(state.players).find(p=>p.gmail.toLowerCase()===email);
-    if(existing){socket.data.playerId=existing.id;return socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[existing.id]||0),resetAt:state.matchUsage.windowStart+3600000});cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true})}
+    const riot=String(d?.riot||"").trim(),discord=String(d?.discord||"").trim();
+    if(!riot||!discord)return cb?.({ok:false,error:"Enter both your in-game name and Discord ID."});
+    const norm=v=>String(v||"").trim().toLowerCase();
+    const existing=Object.values(state.players).find(p=>norm(p.riot)===norm(riot)&&norm(p.discord)===norm(discord));
+    if(existing){socket.data.playerId=existing.id;socket.emit("registered",{player:publicPlayer(existing),state:publicState()});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[existing.id]||0),resetAt:state.matchUsage.windowStart+3600000});return cb?.({ok:true,player:publicPlayer(existing),state:publicState(),existing:true});}
     const id=crypto.randomUUID();
-    state.players[id]={id,name:String(d.name).trim(),gmail:String(d.gmail).trim(),riot:String(d.riot).trim(),discord:String(d.discord).trim(),
-      kingdom:null,slot:null,label:"Awaiting Kingdom Assignment",wins:0,losses:0,registeredAt:Date.now()};
+    state.players[id]={id,name:riot,gmail:"",riot,discord,kingdom:null,slot:null,label:"Awaiting Kingdom Assignment",wins:0,losses:0,registeredAt:Date.now()};
     state.playerOrder.push(id);socket.data.playerId=id;save(state);
     cb?.({ok:true,player:publicPlayer(state.players[id]),state:publicState(),existing:false});socket.emit("myMatchUsage",{used:Number(state.matchUsage.counts[id]||0),resetAt:state.matchUsage.windowStart+3600000});
-    io.emit("playerRegistered",publicPlayer(state.players[id]));
-    broadcast();
+    io.emit("playerRegistered",publicPlayer(state.players[id]));broadcast();
   });
 
   socket.on("adminLogin",(credentials,cb)=>{
@@ -273,6 +275,14 @@ io.on("connection",socket=>{
     addNotice(`${p.name} has been assigned to ${k.name}.`);
     broadcast();cb?.({ok:true,state:adminState()});
     emitPlayer(playerId,"assigned",publicPlayer(p));
+  });
+  socket.on("adminRemovePlayer",(playerId,cb)=>{
+    if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
+    const player=state.players[playerId];if(!player)return cb?.({ok:false,error:"Player not found."});
+    for(const ch of Object.values(state.challenges))if(ch.attackerId===playerId||ch.defenderId===playerId){delete state.challenges[ch.id];delete state.reports[ch.id];io.emit("challengeCancelled",{challengeId:ch.id,territoryId:ch.territoryId});}
+    delete state.matchUsage.counts[playerId];delete state.players[playerId];state.playerOrder=state.playerOrder.filter(id=>id!==playerId);
+    state.adminEvents.unshift({time:Date.now(),action:"removePlayer",playerId,label:player.label||player.name});state.adminEvents=state.adminEvents.slice(0,200);
+    addNotice(`Admin removed ${player.label||player.name} from the active tournament.`);broadcast();cb?.({ok:true,state:adminState()});
   });
   socket.on("adminSetTerritoryOwner",(territoryId,kingdomId,cb)=>{
     if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
@@ -331,7 +341,7 @@ io.on("connection",socket=>{
     if(!p||!ch)return cb?.({ok:false,error:"Challenge not found."});
     if(ch.status!=="pending")return cb?.({ok:false,error:"This challenge is no longer waiting for acceptance."});
     if(p.kingdom!==ch.defenderKingdom)return cb?.({ok:false,error:"Only a player from the defending Kingdom can accept."});
-    ch.defenderId=p.id;ch.status="accepted";ch.acceptedAt=Date.now();
+    ch.defenderId=p.id;ch.status="accepted";ch.acceptedAt=Date.now();ch.checkinExpiresAt=Date.now()+5*60*1000;
     addNotice(`${p.label} accepted a territory challenge.`);
     emitAdmins("challengeAcceptedAdmin",{challenge:ch,defender:publicPlayer(p)});
     io.emit("challengeAccepted",{challenge:ch});broadcast();cb?.({ok:true});
@@ -339,7 +349,7 @@ io.on("connection",socket=>{
   socket.on("checkin",(id,cb)=>{
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
     if(!p||!ch||![ch.attackerId,ch.defenderId].includes(p.id))return cb?.({ok:false,error:"You are not part of this battle."});
-    ch.checkins[p.id]=Date.now();if(ch.checkins[ch.attackerId]&&ch.checkins[ch.defenderId])ch.status="ready";
+    if(ch.status!=="accepted"&&ch.status!=="ready")return cb?.({ok:false,error:"Check-in is not open for this challenge."});if(ch.checkinExpiresAt&&Date.now()>ch.checkinExpiresAt)return cb?.({ok:false,error:"The five-minute check-in window has expired."});ch.checkins[p.id]=Date.now();if(ch.checkins[ch.attackerId]&&ch.checkins[ch.defenderId])ch.status="ready";
     io.emit("challengeUpdated",{challenge:ch});broadcast();cb?.({ok:true});
   });
   socket.on("reportResult",(id,result,cb)=>{

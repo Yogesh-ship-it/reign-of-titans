@@ -18,7 +18,8 @@ socket.on("assigned",p=>{me=p;localStorage.setItem("kcPlayerId",p.id);playerRead
 socket.on("state",s=>{state=s;if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
 socket.on("playerRegistered",p=>{if(isAdmin)renderAdminRoster()});
 socket.on("battleAlert",n=>{toast(n.message);renderAlerts()});
-socket.on("challengeIncoming",payload=>{window.incomingChallenge=payload;toast("⚔ Your territory is being challenged.");renderAlerts();show("alertsPanel")});
+socket.on("challengeIncoming",payload=>{window.incomingChallenge=payload;toast("⚔ Your territory is being challenged.");renderAlerts();showDefenseDashboard()});
+socket.on("walkover",payload=>{if(payload){$("walkoverTitle").textContent=payload.title||"VICTORY BY WALKOVER!";$("walkoverText").textContent=payload.message||"The match deadline has expired.";show("walkoverModal")}window.incomingChallenge=null;if(activeChallenge?.id===payload?.challengeId){activeChallenge=null;hide("matchModal")}renderAll()});
 socket.on("challengeAccepted",ch=>{if(window.incomingChallenge?.challenge?.id===ch.id)window.incomingChallenge=null;if(me&&(ch.attackerId===me.id||ch.defenderId===me.id)){activeChallenge=ch;openMatch()}renderAll();});
 socket.on("challengeUpdated",ch=>{if(activeChallenge?.id===ch.id){activeChallenge=ch;openMatch()}});
 socket.on("resultReported",({challenge})=>{if(activeChallenge?.id===challenge.id){activeChallenge=challenge;openMatch();toast("A result has been reported.")}});
@@ -27,8 +28,8 @@ socket.on("challengeResolved",d=>{if(window.incomingChallenge?.challenge?.id===d
 socket.on("chatMessage",({challengeId,message})=>{if(activeChallenge?.id===challengeId){appendChat(message)}});
 
 function playerReady(){if(!me.kingdom){showPending();return}hide("loginScreen");hide("pendingScreen");hide("scoreScreen");show("mapScreen");$("profileLabel").textContent=`${me.label} · ${K(me.kingdom).name}`;renderAll();startTournamentClock()}
-function showPending(){hide("loginScreen");hide("mapScreen");hide("scoreScreen");show("pendingScreen");$("pendingName").textContent=`Welcome, ${me.name}`;$("pendingPlayer").textContent=`${me.name} · Registration #${state.playerOrder.indexOf(me.id)+1}`}
-$("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";socket.emit("register",{name:$("name").value.trim(),gmail:$("gmail").value.trim(),riot:$("riot").value.trim(),discord:$("discord").value.trim()},r=>{if(!r?.ok){$("loginError").textContent=r?.error||"Registration failed.";return}me=r.player;state=r.state;localStorage.setItem("kcPlayerId",me.id);playerReady()})};
+function showPending(){hide("loginScreen");hide("mapScreen");hide("scoreScreen");show("pendingScreen");$("pendingName").textContent=`Welcome, ${me.riot||me.name}`;$("pendingPlayer").textContent=`${me.name} · Registration #${state.playerOrder.indexOf(me.id)+1}`}
+$("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";socket.emit("register",{riot:$("riot").value.trim(),discord:$("discord").value.trim()},r=>{if(!r?.ok){$("loginError").textContent=r?.error||"Registration failed.";return}me=r.player;state=r.state;localStorage.setItem("kcPlayerId",me.id);playerReady()})};
 $("refreshPending").onclick=()=>socket.emit("resume",me.id);
 $("pendingLogout").onclick=$("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 
@@ -92,6 +93,9 @@ function openTarget(id){
 }
 $("confirmChallenge").onclick=()=>{if(!selectedTerritory)return;socket.emit("challengeCreate",selectedTerritory.id,r=>{if(!r?.ok)return toast(r?.error||"Challenge failed.");activeChallenge=r.challenge;hide("challengePrompt");openMatch();renderAll()})};
 
+function showDefenseDashboard(){const x=window.incomingChallenge;if(!x?.challenge||x.challenge.status!=="pending")return;const ch=x.challenge;$("defenseDetails").textContent=`${x.attacker?.label||"An opponent"} challenged Territory ${x.territory?.num||"?"} of ${x.defenderKingdom?.name||"your Kingdom"}.`;show("defenseDashboard");const tick=()=>{const left=Math.max(0,ch.expiresAt-Date.now());$("defenseTimer").textContent=fmt(left);if(left<=0){clearInterval(window.defenseTicker);hide("defenseDashboard")}};clearInterval(window.defenseTicker);tick();window.defenseTicker=setInterval(tick,250)}
+$("acceptDefense").onclick=()=>{const ch=window.incomingChallenge?.challenge;if(!ch)return;socket.emit("challengeAccept",ch.id,r=>{if(!r?.ok){toast(r?.error||"Challenge acceptance failed.");return}window.incomingChallenge=null;hide("defenseDashboard");hide("alertsPanel");activeChallenge=state?.challenges?.[ch.id]||{...ch,...r.challenge};openMatch();renderAll()})};
+$("dismissDefense").onclick=()=>hide("defenseDashboard");$("closeWalkover").onclick=()=>hide("walkoverModal");
 function updateActiveChallenge(){if(!activeChallenge)return;const f=state.challenges[activeChallenge.id];if(f)activeChallenge=f}
 function openMatch(){
   if(!activeChallenge)return;const ch=state.challenges[activeChallenge.id]||activeChallenge;activeChallenge=ch;
@@ -101,6 +105,7 @@ function openMatch(){
   $("defenderName").textContent=d?.label||"Waiting for a defender…";$("defenderKingdom").textContent=d?K(d.kingdom).name:K(ch.defenderKingdom).name;
   $("attackerSymbol").style.color=a?K(a.kingdom).color:"#fff";$("defenderSymbol").style.color=d?K(d.kingdom).color:K(ch.defenderKingdom).color;
   $("waitingText").textContent=ch.status==="pending"?`Any ${K(ch.defenderKingdom).name} player can accept this challenge.`:`${d?.label||"A defender"} accepted the challenge.`;
+  if(ch.status==="accepted"&&ch.checkinExpiresAt){$("waitingTitle").textContent="GAME CHECK-IN WINDOW";$("waitingText").textContent=`Both players must check in. Time remaining: ${fmt(ch.checkinExpiresAt-Date.now())}`;$ ("waitingBox").classList.remove("hidden");}
   $("waitingBox").classList.toggle("hidden",ch.status!=="pending");
   $("cancelChallenge").classList.toggle("hidden",!(ch.status==="pending"&&me.id===ch.attackerId));
   $("attackerCheckin").disabled=me.id!==ch.attackerId||!!ch.checkins?.[ch.attackerId];
@@ -112,7 +117,7 @@ function openMatch(){
   const mine=state.reports?.[ch.id]?.[me.id];$("iWin").disabled=!!mine;$("iLose").disabled=!!mine;
   renderChat(ch.chat||[]);show("matchModal");
   clearInterval(challengeTicker);
-  if(ch.status==="pending")challengeTicker=setInterval(()=>{const remain=ch.expiresAt-Date.now();$("responseTimer").textContent=fmt(remain);if(remain<=0)clearInterval(challengeTicker)},250);
+  if(ch.status==="pending"||ch.status==="accepted")challengeTicker=setInterval(()=>{const deadline=ch.status==="pending"?ch.expiresAt:ch.checkinExpiresAt;const remain=Number(deadline||0)-Date.now();$("responseTimer").textContent=fmt(remain);if(ch.status==="accepted")$("waitingText").textContent=`Both players must check in. Time remaining: ${fmt(remain)}`;if(remain<=0)clearInterval(challengeTicker)},250);
 }
 $("cancelChallenge").onclick=()=>{if(!activeChallenge)return;if(!confirm("Cancel this challenge?"))return;socket.emit("challengeCancel",activeChallenge.id,r=>{if(!r?.ok)return toast(r?.error||"Cancel failed.");activeChallenge=null;hide("matchModal");toast("Challenge cancelled.");renderAll()})};
 $("attackerCheckin").onclick=$("defenderCheckin").onclick=()=>socket.emit("checkin",activeChallenge.id,r=>{if(!r?.ok)toast(r?.error||"Check-in failed.")});
@@ -139,7 +144,7 @@ function renderAlerts(){
 $("alertButton").onclick=()=>{renderAlerts();show("alertsPanel")};$("closeAlerts").onclick=()=>hide("alertsPanel");$("closeFighting").onclick=()=>hide("fightingModal");
 
 $("playersBtn").onclick=()=>{renderPublicPlayers();show("playersModal")};
-function renderPublicPlayers(){const list=state.playerOrder.map((id,i)=>state.players[id]).filter(Boolean);$("publicPlayers").innerHTML=list.map((p,i)=>`<div class="public-player"><div class="pnum">#${i+1}</div><div><b>${esc(p.name)}</b><small>${p.kingdom?`${K(p.kingdom).icon} ${esc(K(p.kingdom).name)} · ${esc(p.label)}`:"Awaiting Kingdom assignment"}</small></div><span class="${p.kingdom?"assigned":"waiting"}">${p.kingdom?"ASSIGNED":"WAITING"}</span></div>`).join("")||"<div class='admin-empty'>No players registered yet.</div>"}
+function renderPublicPlayers(){const list=state.playerOrder.map((id,i)=>state.players[id]).filter(Boolean);$("publicPlayers").innerHTML=list.map((p,i)=>`<div class="public-player"><div class="pnum">#${i+1}</div><div><b>${esc(p.riot||p.name)}</b><small>${p.kingdom?`${K(p.kingdom).icon} ${esc(K(p.kingdom).name)} · ${esc(p.label)}`:"Awaiting Kingdom assignment"}</small></div><span class="${p.kingdom?"assigned":"waiting"}">${p.kingdom?"ASSIGNED":"WAITING"}</span></div>`).join("")||"<div class='admin-empty'>No players registered yet.</div>"}
 
 $("scoreBtn").onclick=()=>{renderScore();hide("mapScreen");show("scoreScreen")};$("backMap").onclick=()=>{hide("scoreScreen");show("mapScreen")};
 function renderScore(){const list=state.kingdoms.map(k=>({...k,territories:tcount(k.id),players:playersFor(k.id),defense:Math.max(0,Math.min(3,Number(state.defensePoints?.[k.id]??3)))})).sort((a,b)=>b.territories-a.territories||(b.players.reduce((x,p)=>x+p.wins,0)-a.players.reduce((x,p)=>x+p.wins,0)));$("scoreGrid").innerHTML=list.map((k,i)=>{const risk=k.defense===0;const pct=(k.defense/3)*100;return `<article class="kingdom-card ${i===0?"champion":""}" style="--accent:${k.color}"><div class="kc-head"><div class="rank">${i===0?"♛":"#"+(i+1)}</div><div class="kname">${k.icon} ${esc(k.name)}<div class="defense-points ${risk?"critical":""}"><span>DEFENSE POINTS</span><b>${k.defense}/3</b>${risk?"<em>IN RISK</em>":""}</div><div class="defense-meter ${risk?"critical":""}" role="img" aria-label="Defense ${k.defense} out of 3"><span style="width:${pct}%"></span></div></div><div class="territories"><b>${k.territories}</b><span>TERRITORIES</span></div></div><div class="player-head"><span>CHAMPIONS</span><span>WINS</span><span>LOSSES</span></div>${k.players.length?k.players.map(p=>`<div class="player-row"><div class="player-name"><i>♟</i><b>${esc(p.label)}</b></div><strong class="wins">${p.wins}</strong><strong class="losses">${p.losses}</strong></div>`).join(""):"<div class='unassigned-row'>No players assigned yet.</div>"}</article>`}).join("")}

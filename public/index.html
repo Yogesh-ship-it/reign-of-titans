@@ -9,10 +9,8 @@
 <div class="riot-logo">REIGN <small>OF</small> TITAN</div><div class="kc-logo">KINGDOM CONQUEST</div><div class="rule"></div>
 <div class="tagline">7 KINGDOMS · 21 CHAMPIONS · 105 TERRITORIES · ONE CROWN</div>
 <form id="loginForm" class="login-card"><div class="eyebrow">TOURNAMENT REGISTRATION</div><h1>Enter the Conquest</h1><p>Register once. Your Kingdom is assigned later by the tournament administrator.</p>
-<label>Full Name</label><input id="name" required autocomplete="name" placeholder="Enter your name">
-<label>Gmail Address</label><input id="gmail" type="email" required autocomplete="email" placeholder="you@gmail.com">
-<label>Reign of Titan In-Game Name</label><input id="riot" required placeholder="Your in-game name">
-<label>Discord Name</label><input id="discord" required placeholder="e.g. player#1234">
+<label>In-Game Name</label><input id="riot" required autocomplete="username" placeholder="Your Reign of Titan in-game name">
+<label>Discord ID</label><input id="discord" required placeholder="Your Discord username or ID">
 <button class="gold-button" type="submit">REGISTER FOR KINGDOM CONQUEST <span>→</span></button><div id="loginError" class="error"></div>
 <div class="login-foot">Kingdom selection is controlled exclusively by the tournament administrator.</div></form>
 </div></section>
@@ -43,5 +41,7 @@
 
 <div id="profileModal" class="modal hidden"><div class="veil"></div><div class="modal-card small-card"><button class="x" data-close="profileModal">×</button><div class="eyebrow">PLAYER IDENTITY</div><h2 id="profileName"></h2><div id="profileData"></div></div></div>
 <div id="adminModal" class="modal hidden"><div class="veil"></div><div class="modal-card admin-card"><button class="x" data-close="adminModal">×</button><div class="eyebrow">ADMIN CONTROL</div><h2>Command Center</h2><div class="admin-tabs"><button class="active" data-tab="roster">PLAYER ROSTER</button><button data-tab="battles">BATTLE APPROVALS</button></div><div id="adminContent"></div></div></div>
+<div id="walkoverModal" class="modal hidden"><div class="veil"></div><div class="modal-card small-card walkover-card"><div class="fighting-icon">🏆</div><div class="eyebrow">MATCH RESULT</div><h2 id="walkoverTitle">VICTORY BY WALKOVER!</h2><p id="walkoverText" class="muted">Your opponent missed the deadline.</p><button id="closeWalkover" class="gold-button wide">CONTINUE</button></div></div>
+<div id="defenseDashboard" class="modal hidden"><div class="veil"></div><div class="modal-card defense-dashboard"><div class="eyebrow">INCOMING CHALLENGE</div><h2>⚔ DEFEND YOUR TERRITORY</h2><p id="defenseDetails">An opponent has challenged your kingdom.</p><div class="dashboard-timer" id="defenseTimer">15:00</div><button id="acceptDefense" class="gold-button wide">ACCEPT CHALLENGE</button><button id="dismissDefense" class="dark-button wide-dark">LATER</button></div></div>
 <div id="toast" class="toast hidden"></div>
 <script src="/socket.io/socket.io.js"></script><script src="app.js"></script></body></html>
