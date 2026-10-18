@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "tournamentStartedAt": null,
   "players": {
     "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
@@ -1002,5 +1002,14 @@
     "sun": 3,
     "ember": 3,
     "shadow": 3
+  },
+  "defenseRegenAt": {
+    "verdant": 1792341988124,
+    "frost": 1792341988124,
+    "stone": 1792341988124,
+    "sky": 1792341988124,
+    "sun": 1792341988124,
+    "ember": 1792341988124,
+    "shadow": 1792341988124
   }
 }

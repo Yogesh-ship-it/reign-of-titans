@@ -71,3 +71,24 @@
 .walkover-card .fighting-icon{font-size:3rem;margin-bottom:10px}
 .remove-player{border:1px solid #a94444;background:#4b1717;color:#fff;border-radius:6px;padding:8px 11px;font-weight:800;cursor:pointer;margin:6px 0}
 .remove-player:hover{background:#742222}
+
+
+/* Kingdom-wide incoming challenges and synchronized response countdowns */
+.defense-dashboard{max-height:88vh;overflow:auto;text-align:left}
+.defense-dashboard>h2{text-align:center}
+.defense-intro{color:#9aa8b5;font-size:12px;line-height:1.6;text-align:center;margin:0 0 18px}
+.defense-challenge-list{display:grid;gap:12px;margin-top:14px}
+.defense-challenge-card{background:linear-gradient(145deg,#101923,#090e14);border:1px solid #3a4653;border-left:3px solid #d9ad51;border-radius:8px;padding:15px}
+.defense-challenge-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.defense-challenge-top b{font-family:Cinzel,serif;color:#f2d58d;font-size:13px;line-height:1.5}
+.defense-challenge-top small{white-space:nowrap;color:#91a0ae;font-size:10px}
+.defense-challenge-card p{color:#9aa7b4;font-size:11px;line-height:1.5;margin:9px 0 0}
+.defense-challenge-card .dashboard-timer{font-size:clamp(1.7rem,5vw,2.3rem);text-align:center;margin:12px auto;color:#e8bd62}
+.defense-challenge-card .dashboard-timer.urgent{color:#ff4b55;text-shadow:0 0 12px #ff26364f}
+.defense-challenge-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.defense-challenge-actions button{width:100%;min-height:42px;font-size:10px;font-weight:900;letter-spacing:.08em}
+.decline-button{border:1px solid #8c3941;background:#35151b;color:#ffadb3;border-radius:5px;padding:11px 16px;cursor:pointer}
+.decline-button:hover{background:#511b24;border-color:#d4515c}
+#defenseKingdomPoints .defense-points{margin-top:12px}
+#defenseKingdomPoints .defense-meter{max-width:none}
+@media(max-width:560px){.defense-dashboard{padding:20px}.defense-challenge-top{display:block}.defense-challenge-top small{display:block;margin-top:4px}.defense-challenge-actions{grid-template-columns:1fr 1fr}}
