@@ -522,6 +522,22 @@ io.on("connection",socket=>{
     state.tournamentStartedAt=Date.now();state.lastDefenseRegenAt=state.tournamentStartedAt;
     addNotice("The 48-hour Kingdom Catch Tournament has begun.");broadcast();cb?.({ok:true});
   });
+  socket.on("adminRestartTournamentTimer",cb=>{
+    if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
+    // Restart only the 48-hour clock. Preserve registrations, assignments, territory ownership,
+    // Defense Points, match history, challenges, and personal match usage for safe testing.
+    const now=Date.now();
+    state.tournamentStartedAt=now;
+    state.lastDefenseRegenAt=now;
+    state.adminEvents=state.adminEvents||[];
+    state.adminEvents.unshift({time:now,action:"restartTournamentTimer"});
+    state.adminEvents=state.adminEvents.slice(0,200);
+    addNotice("The admin restarted the 48-hour tournament timer.");
+    save(state);
+    broadcast();
+    cb?.({ok:true,state:adminState()});
+  });
+
   socket.on("adminResetTournament",cb=>{
     if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
     state=blankState();save(state);io.emit("state",publicState());cb?.({ok:true});
