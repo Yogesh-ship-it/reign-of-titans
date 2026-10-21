@@ -1,6 +1,6 @@
 {
-  "name": "kingdom-conquest-final",
-  "version": "1.0.0",
+  "name": "kingdom-catch-tournament",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "start": "node server.js"

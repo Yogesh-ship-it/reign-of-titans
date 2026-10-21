@@ -7,15 +7,16 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const show=id=>$(id).classList.remove("hidden"), hide=id=>$(id).classList.add("hidden");
 function fmt(ms){let s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
 function toast(s){$("toast").textContent=s;show("toast");clearTimeout(window.toastT);window.toastT=setTimeout(()=>hide("toast"),3000)}
-function playersFor(k){return Object.values(state.players).filter(p=>p.kingdom===k).sort((a,b)=>(a.slot||9)-(b.slot||9))}
+function playersFor(k){return Object.values(state.players).filter(p=>p.approved!==false&&p.kingdom===k).sort((a,b)=>(a.slot||9)-(b.slot||9))}
 function tcount(k){return state.territories.filter(t=>t.kingdom===k).length}
 
 socket.on("connect",()=>{const id=localStorage.getItem("kcPlayerId");if(id)socket.emit("resume",id)});
 socket.on("resumeFailed",()=>localStorage.removeItem("kcPlayerId"));
 socket.on("myMatchUsage",usage=>{myMatchUsage=usage||myMatchUsage;renderMatchLimits()});
 socket.on("registered",({player,state:s})=>{me=player;state=s;playerReady()});
+socket.on("approvalUpdated",p=>{me=p;if(state?.players)state.players[p.id]=p;playerReady();toast("Your registration has been approved.")});
 socket.on("assigned",p=>{me=p;localStorage.setItem("kcPlayerId",p.id);playerReady();toast(`Kingdom assigned: ${p.label}`)});
-socket.on("state",s=>{state=s;if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
+socket.on("state",s=>{state=s;updateHomeStatus();if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
 socket.on("playerRegistered",p=>{if(isAdmin)renderAdminRoster()});
 socket.on("battleAlert",n=>{toast(n.message);renderAlerts()});
 socket.on("challengeIncoming",payload=>{window.incomingChallenge=payload;toast("⚔ Your territory is being challenged.");renderAlerts();showDefenseDashboard()});
@@ -27,8 +28,8 @@ socket.on("challengeCancelled",d=>{if(window.incomingChallenge?.challenge?.id===
 socket.on("challengeResolved",d=>{if(window.incomingChallenge?.challenge?.id===d.challenge.id)window.incomingChallenge=null;if(activeChallenge?.id===d.challenge.id){activeChallenge=null;hide("matchModal");toast(`${d.winner.label} won the territory.`)}renderAll()});
 socket.on("chatMessage",({challengeId,message})=>{if(activeChallenge?.id===challengeId){appendChat(message)}});
 
-function playerReady(){if(!me.kingdom){showPending();return}hide("loginScreen");hide("pendingScreen");hide("scoreScreen");show("mapScreen");$("profileLabel").textContent=`${me.label} · ${K(me.kingdom).name}`;renderAll();startTournamentClock()}
-function showPending(){hide("loginScreen");hide("mapScreen");hide("scoreScreen");show("pendingScreen");$("pendingName").textContent=`Welcome, ${me.riot||me.name}`;$("pendingPlayer").textContent=`${me.name} · Registration #${state.playerOrder.indexOf(me.id)+1}`}
+function playerReady(){if(me.approved===false||!me.kingdom){showPending();return}hide("homeScreen");hide("loginScreen");hide("pendingScreen");hide("scoreScreen");show("mapScreen");$("profileLabel").textContent=`${me.label} · ${K(me.kingdom).name}`;renderAll();startTournamentClock()}
+function showPending(){hide("homeScreen");hide("loginScreen");hide("mapScreen");hide("scoreScreen");show("pendingScreen");$("pendingName").textContent=`Welcome, ${me.riot||me.name}`;$("pendingPlayer").textContent=`${me.name} · Registration #${state.playerOrder.indexOf(me.id)+1}`;const approved=me.approved!==false;$("pendingStatus").textContent=approved?"AWAITING KINGDOM ASSIGNMENT":"AWAITING ADMIN APPROVAL";$("pendingMessage").textContent=approved?"Your registration has been approved. The administrator will assign your Kingdom before you can enter the map.":"Your registration has been saved. The administrator will review it and approve up to 30 players before assigning Kingdoms."}
 $("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";socket.emit("register",{riot:$("riot").value.trim(),discord:$("discord").value.trim()},r=>{if(!r?.ok){$("loginError").textContent=r?.error||"Registration failed.";return}me=r.player;state=r.state;localStorage.setItem("kcPlayerId",me.id);playerReady()})};
 $("refreshPending").onclick=()=>socket.emit("resume",me.id);
 $("pendingLogout").onclick=$("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
@@ -37,8 +38,8 @@ function renderAll(){if(!state)return;renderFlags();renderAlerts();renderMatchLi
 function renderMatchLimits(){
   const wrap=$("matchLimitPlayers");if(!wrap)return;
   if(!me){wrap.innerHTML='<span class="match-limit-empty">Register or sign in to view your match usage.</span>';updateMatchResetTimer();return}
-  const used=Math.min(3,Math.max(0,Number(myMatchUsage.used||0)));
-  wrap.innerHTML=`<div class="match-limit-player ${used>=3?"limit-reached":""}" title="Your usage: ${used} of 3 matches in your personal two-hour period"><b>${esc(me.label||me.name||"Your matches")}</b><span>${used}/3 MATCHES USED</span><i><em style="width:${used/3*100}%"></em></i></div>`;
+  const limit=Number(myMatchUsage.limit||5),used=Math.min(limit,Math.max(0,Number(myMatchUsage.used||0)));
+  wrap.innerHTML=`<div class="match-limit-player ${used>=limit?"limit-reached":""}" title="Your usage: ${used} of ${limit} matches in your personal two-hour period"><b>${esc(me.label||me.name||"Your matches")}</b><span>${used}/${limit} MATCHES USED</span><i><em style="width:${used/limit*100}%"></em></i></div>`;
   updateMatchResetTimer();
 }
 function updateMatchResetTimer(){const el=$("matchResetTimer");if(!el)return;const resetAt=Number(myMatchUsage?.resetAt||0);if(!resetAt){el.textContent="STARTS AFTER CHECK-IN";return}const left=Math.max(0,resetAt-Date.now());const total=Math.floor(left/1000);el.textContent=`${String(Math.floor(total/3600)).padStart(2,"0")}:${String(Math.floor((total%3600)/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
@@ -47,13 +48,11 @@ function renderFlags(){
   // Positions are based on the ORIGINAL realm shown in the artwork. A captured
   // territory changes flag color but stays in its original territory location.
   const zones=[
-    {id:"verdant",x:[7,36],y:[16,35]},
-    {id:"frost",x:[37,64],y:[8,28]},
-    {id:"stone",x:[66,95],y:[12,34]},
-    {id:"sky",x:[5,31],y:[40,61]},
-    {id:"sun",x:[73,97],y:[40,62]},
-    {id:"ember",x:[10,45],y:[70,91]},
-    {id:"shadow",x:[54,91],y:[70,91]}
+    {id:"frost",x:[7,19],y:[5,17]}, {id:"verdant",x:[41,54],y:[4,17]},
+    {id:"ember",x:[76,88],y:[5,17]}, {id:"shadow",x:[2,13],y:[34,47]},
+    {id:"storm",x:[20,31],y:[34,47]}, {id:"stone",x:[44,55],y:[34,47]},
+    {id:"void",x:[85,96],y:[34,47]}, {id:"crimson",x:[6,18],y:[64,77]},
+    {id:"sun",x:[35,47],y:[64,77]}, {id:"sky",x:[70,82],y:[64,77]}
   ];
   const spots=[];
   for(let r=0;r<3;r++) for(let c=0;c<5;c++) spots.push([(c+0.5)/5,(r+0.5)/3]);
@@ -70,13 +69,14 @@ function renderFlags(){
       if(owner.id===me?.kingdom)b.classList.add("friendly");else b.classList.add("enemy");
       if(ch?.status==="pending")b.classList.add("blinking");
       if(ch?.status==="accepted"||ch?.status==="ready"||ch?.status==="reported"||ch?.status==="disputed")b.classList.add("in-battle");
-      b.title=`${owner.name} territory`;
-      b.setAttribute("aria-label",`${owner.name} territory`);
+      b.title=`${owner.name} · Territory ${t.num} · ${Number(t.defensePoints??3)}/3 Defense Points`;
+      b.setAttribute("aria-label",`${owner.name}, Territory ${t.num}, ${Number(t.defensePoints??3)} Defense Points`);
       b.onclick=()=>openTarget(t.id);layer.appendChild(b);
     }
   });
 }
 function openTarget(id){
+  if(!state?.tournamentStartedAt||Date.now()-Number(state.tournamentStartedAt)>=172800000){toast(!state?.tournamentStartedAt?"The tournament hasn't started yet!":"The 48-hour tournament has ended.");return}
   selectedTerritory=state.territories.find(t=>t.id===id);if(!selectedTerritory)return;
   const owner=K(selectedTerritory.kingdom);const ch=Object.values(state.challenges).find(c=>c.territoryId===id&&c.status!=="resolved");
   if(ch){
@@ -85,7 +85,7 @@ function openTarget(id){
     show("fightingModal");return;
   }
   $("targetTitle").textContent=`Challenge ${owner.name} Territory`;
-  $("targetOwner").innerHTML=`<span class="kingdom-dot" style="background:${owner.color}"></span><b>${owner.icon} ${owner.name}</b><small>Current territory owner</small>`;
+  $("targetOwner").innerHTML=`<span class="kingdom-dot" style="background:${owner.color}"></span><b>${owner.icon} ${owner.name}</b><small>Current territory owner · Territory Defense Points: ${Number(selectedTerritory.defensePoints??3)}/3</small>`;
   const blocked=!me?.kingdom||owner.id===me.kingdom;
   $("confirmChallenge").disabled=blocked;
   $("confirmChallenge").textContent=!me?.kingdom?"WAITING FOR KINGDOM ASSIGNMENT":owner.id===me.kingdom?"YOUR KINGDOM TERRITORY":"⚔ CHALLENGE THIS TERRITORY";
@@ -105,7 +105,8 @@ function openMatch(){
   $("defenderName").textContent=d?.riot||d?.name||d?.label||"Waiting for a defender…";$("defenderKingdom").textContent=d?`${K(d.kingdom).name} · ${d.label}`:K(ch.defenderKingdom).name;
   $("attackerSymbol").style.color=a?K(a.kingdom).color:"#fff";$("defenderSymbol").style.color=d?K(d.kingdom).color:K(ch.defenderKingdom).color;
   $("waitingText").textContent=ch.status==="pending"?`Any ${K(ch.defenderKingdom).name} player can accept this challenge.`:`${d?.label||"A defender"} accepted the challenge.`;
-  if(ch.status==="accepted"&&ch.checkinExpiresAt){$("waitingTitle").textContent="GAME CHECK-IN WINDOW";$("waitingText").textContent=`Both players must check in. Time remaining: ${fmt(ch.checkinExpiresAt-Date.now())}`;$ ("waitingBox").classList.remove("hidden");}
+  if(ch.status==="pending"){$("waitingTitle").textContent="WAITING FOR DEFENDER";$("responseTimer").textContent=fmt(ch.expiresAt-Date.now());}
+  if(ch.status==="accepted"&&ch.checkinExpiresAt){$("waitingTitle").textContent="5-MINUTE CHECK-IN WINDOW";$("responseTimer").textContent=fmt(ch.checkinExpiresAt-Date.now());$("waitingText").textContent="Both players must check in before the timer expires.";$ ("waitingBox").classList.remove("hidden");}
   $("waitingBox").classList.toggle("hidden",!(["pending","accepted"].includes(ch.status)));
   $("cancelChallenge").classList.toggle("hidden",!(ch.status==="pending"&&me.id===ch.attackerId));
   $("attackerCheckin").disabled=me.id!==ch.attackerId||!!ch.checkins?.[ch.attackerId];
@@ -161,7 +162,7 @@ function renderAlerts(){
 $("alertButton").onclick=()=>{renderAlerts();show("alertsPanel")};$("closeAlerts").onclick=()=>hide("alertsPanel");$("closeFighting").onclick=()=>hide("fightingModal");
 
 $("playersBtn").onclick=()=>{renderPublicPlayers();show("playersModal")};
-function renderPublicPlayers(){const list=state.playerOrder.map((id,i)=>state.players[id]).filter(Boolean);$("publicPlayers").innerHTML=list.map((p,i)=>`<div class="public-player"><div class="pnum">#${i+1}</div><div><b>${esc(p.riot||p.name)}</b><small>${p.kingdom?`${K(p.kingdom).icon} ${esc(K(p.kingdom).name)} · ${esc(p.label)}`:"Awaiting Kingdom assignment"}</small></div><span class="${p.kingdom?"assigned":"waiting"}">${p.kingdom?"ASSIGNED":"WAITING"}</span></div>`).join("")||"<div class='admin-empty'>No players registered yet.</div>"}
+function renderPublicPlayers(){const list=state.playerOrder.map((id,i)=>state.players[id]).filter(p=>p&&p.approved!==false);$("publicPlayers").innerHTML=list.map((p,i)=>`<div class="public-player"><div class="pnum">#${i+1}</div><div><b>${esc(p.riot||p.name)}</b><small>${p.kingdom?`${K(p.kingdom).icon} ${esc(K(p.kingdom).name)} · ${esc(p.label)}`:"Awaiting Kingdom assignment"}</small></div><span class="${p.kingdom?"assigned":"waiting"}">${p.kingdom?"ASSIGNED":"WAITING"}</span></div>`).join("")||"<div class='admin-empty'>No players registered yet.</div>"}
 
 $("scoreBtn").onclick=()=>{renderScore();hide("mapScreen");show("scoreScreen")};$("backMap").onclick=()=>{hide("scoreScreen");show("mapScreen")};
 function renderScore(){const list=state.kingdoms.map(k=>({...k,territories:tcount(k.id),players:playersFor(k.id),defense:Math.max(0,Math.min(3,Number(state.defensePoints?.[k.id]??3)))})).sort((a,b)=>b.territories-a.territories||(b.players.reduce((x,p)=>x+p.wins,0)-a.players.reduce((x,p)=>x+p.wins,0)));$("scoreGrid").innerHTML=list.map((k,i)=>{const risk=k.defense===0;const pct=(k.defense/3)*100;return `<article class="kingdom-card ${i===0?"champion":""}" style="--accent:${k.color}"><div class="kc-head"><div class="rank">${i===0?"♛":"#"+(i+1)}</div><div class="kname">${k.icon} ${esc(k.name)}<div class="defense-points ${risk?"critical":""}"><span>DEFENSE POINTS</span><b>${k.defense}/3</b>${risk?"<em>IN RISK</em>":""}</div><div class="defense-meter ${risk?"critical":""}" role="img" aria-label="Defense ${k.defense} out of 3"><span style="width:${pct}%"></span></div></div><div class="territories"><b>${k.territories}</b><span>TERRITORIES</span></div></div><div class="player-head"><span>CHAMPIONS</span><span>WINS</span><span>LOSSES</span></div>${k.players.length?k.players.map(p=>`<div class="player-row"><div class="player-name"><i>♟</i><b>${esc(p.label)}</b></div><strong class="wins">${p.wins}</strong><strong class="losses">${p.losses}</strong></div>`).join(""):"<div class='unassigned-row'>No players assigned yet.</div>"}</article>`}).join("")}
@@ -170,12 +171,26 @@ $("profileBtn").onclick=()=>{const k=K(me.kingdom);$("profileName").textContent=
 $("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>hide(x.dataset.close));
 
-function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED"}else{const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=fmt(r)}updateMatchResetTimer()};tick();tournamentTicker=setInterval(tick,1000)}
+function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED"}else{const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=r?fmt(r):"FINISHED"}updateMatchResetTimer();if(activeChallenge){const ch=state?.challenges?.[activeChallenge.id]||activeChallenge;if(ch.status==="pending")$("responseTimer").textContent=fmt(ch.expiresAt-Date.now());else if(ch.status==="accepted"&&ch.checkinExpiresAt)$("responseTimer").textContent=fmt(ch.checkinExpiresAt-Date.now())}};tick();tournamentTicker=setInterval(tick,1000)}
 
-$("adminBtn").onclick=()=>{const pass=prompt("Admin password:");if(pass===null)return;socket.emit("adminLogin",pass,r=>{if(!r?.ok){toast(r?.error||"Admin login failed.");return}isAdmin=true;adminState=r.state;openAdmin("roster")})};
+$("adminBtn").onclick=()=>{const id=prompt("Admin ID:");if(id===null)return;const password=prompt("Admin password:");if(password===null)return;socket.emit("adminLogin",{id,password},r=>{if(!r?.ok){toast(r?.error||"Admin login failed.");return}isAdmin=true;adminState=r.state;openAdmin("roster")})};
 function openAdmin(tab){renderAdmin(tab);show("adminModal")}
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderAdmin(b.dataset.tab)});
-function renderAdmin(tab="roster"){socket.emit("adminState",r=>{if(!r?.ok)return;adminState=r.state;const c=$("adminContent");if(tab==="roster"){c.innerHTML=`<div class="admin-tools"><button id="startTournament" class="gold-button small">START 48-HOUR TOURNAMENT</button><button id="resetTournament" class="dark-button">RESET TEST DATA</button></div><div class="admin-note">Full registration details are visible only here. Assign a Kingdom to each player; the server will allocate A/B/C slots automatically.</div><div class="admin-roster">${adminState.playerOrder.map((id,i)=>{const p=adminState.players[id];return `<div class="admin-player"><div class="admin-pnum">#${i+1}</div><div class="admin-pinfo"><b>${esc(p.name)}</b><small>Gmail: ${esc(p.gmail)} · RoT: ${esc(p.riot)} · Discord: ${esc(p.discord)}</small></div><div class="admin-assignment"><span>${p.kingdom?esc(p.label):"Awaiting assignment"}</span><select data-assign="${p.id}"><option value="">Assign Kingdom…</option>${state.kingdoms.map(k=>`<option value="${k.id}" ${p.kingdom===k.id?"selected":""}>${k.name}</option>`).join("")}</select></div></div>`}).join("")||"<div class='admin-empty'>No registrations yet.</div>"}</div>`;$("startTournament").onclick=()=>socket.emit("adminStartTournament",r=>{if(r?.ok){toast("48-hour tournament started.");renderAdmin(tab)}else toast(r?.error||"Cannot start tournament.")});$("resetTournament").onclick=()=>{if(confirm("Reset all tournament data and registrations?"))socket.emit("adminResetTournament",()=>{toast("Tournament data reset.");location.reload()})};document.querySelectorAll("[data-assign]").forEach(s=>s.onchange=()=>{if(!s.value)return;socket.emit("adminAssign",s.dataset.assign,s.value,r=>{if(r?.ok){toast("Kingdom assigned.");renderAdmin("roster")}else{toast(r?.error||"Assignment failed.");renderAdmin("roster")}})})}
+function renderAdmin(tab="roster"){socket.emit("adminState",r=>{if(!r?.ok)return;adminState=r.state;const c=$("adminContent");if(tab==="roster"){c.innerHTML=`<div class="admin-tools"><button id="startTournament" class="gold-button small">START 48-HOUR TOURNAMENT</button><button id="resetTournament" class="dark-button">RESET TEST DATA</button></div><div class="admin-note">Unlimited registrations are saved as pending. Approve a maximum of 30 players, then assign Kingdoms. The server allocates A/B/C slots automatically.</div><div class="admin-roster">${adminState.playerOrder.map((id,i)=>{const p=adminState.players[id];return `<div class="admin-player"><div class="admin-pnum">#${i+1}</div><div class="admin-pinfo"><b>${esc(p.name)}</b><small>Gmail: ${esc(p.gmail)} · RoT: ${esc(p.riot)} · Discord: ${esc(p.discord)}</small></div><div class="admin-assignment"><span>${p.approved===false?"PENDING APPROVAL":p.kingdom?esc(p.label):"Awaiting assignment"}</span>${p.approved===false?`<button class="gold-button small" data-approve="${p.id}">APPROVE</button>`:`<select data-assign="${p.id}"><option value="">Assign Kingdom…</option>${state.kingdoms.map(k=>`<option value="${k.id}" ${p.kingdom===k.id?"selected":""}>${k.name}</option>`).join("")}</select>`}</div></div>`}).join("")||"<div class='admin-empty'>No registrations yet.</div>"}</div>`;$("startTournament").onclick=()=>socket.emit("adminStartTournament",r=>{if(r?.ok){toast("48-hour tournament started.");renderAdmin(tab)}else toast(r?.error||"Cannot start tournament.")});$("resetTournament").onclick=()=>{if(confirm("Reset all tournament data and registrations?"))socket.emit("adminResetTournament",()=>{toast("Tournament data reset.");location.reload()})};document.querySelectorAll("[data-approve]").forEach(b=>b.onclick=()=>socket.emit("adminApprovePlayer",b.dataset.approve,r=>{if(r?.ok){toast("Player approved.");renderAdmin("roster")}else toast(r?.error||"Approval failed.")}));document.querySelectorAll("[data-assign]").forEach(s=>s.onchange=()=>{if(!s.value)return;socket.emit("adminAssign",s.dataset.assign,s.value,r=>{if(r?.ok){toast("Kingdom assigned.");renderAdmin("roster")}else{toast(r?.error||"Assignment failed.");renderAdmin("roster")}})})}
 else{const reported=Object.values(adminState.challenges).filter(c=>c.status==="reported");c.innerHTML=reported.length?reported.map(ch=>{const a=adminState.players[ch.attackerId],d=adminState.players[ch.defenderId],rs=adminState.reports[ch.id]||{},first=Object.values(rs).sort((x,y)=>x.time-y.time)[0],remaining=first?Math.max(0,300000-(Date.now()-first.time)):0;return `<div class="admin-item"><b>Territory ${adminState.territories.find(t=>t.id===ch.territoryId)?.num||"?"}</b><small>${esc(a.label)} vs ${esc(d.label)} · Admin window ${fmt(remaining)}</small><div class="admin-reports"><span>${esc(a.label)}: ${rs[a.id]?.result?.toUpperCase()||"—"}</span><span>${esc(d.label)}: ${rs[d.id]?.result?.toUpperCase()||"—"}</span></div><div class="admin-actions"><button data-win="${a.id}" data-ch="${ch.id}">${esc(a.label)} WINS</button><button data-win="${d.id}" data-ch="${ch.id}">${esc(d.label)} WINS</button></div></div>`}).join(""):"<div class='admin-empty'>No reported battles require approval.</div>";document.querySelectorAll("[data-win]").forEach(b=>b.onclick=()=>socket.emit("adminResolve",b.dataset.ch,b.dataset.win,r=>{if(r?.ok){toast("Winner approved.");renderAdmin("battles")}else toast(r?.error||"Approval failed.")}))}})}
 
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>hide(x.dataset.close));
+
+// Landing page and section navigation
+function goHome(){hide("mapScreen");hide("scoreScreen");hide("loginScreen");hide("pendingScreen");show("homeScreen");updateHomeStatus()}
+function updateHomeStatus(){const live=!!state?.tournamentStartedAt&&Date.now()-Number(state.tournamentStartedAt)<172800000;const status=!state?.tournamentStartedAt?"NOT STARTED":live?"TOURNAMENT LIVE":"TOURNAMENT FINISHED";const a=$("homeTournamentStatus"),b=$("homeTimerStatus"),c=$("homeOverviewStatus");if(a)a.textContent=status;if(b)b.textContent=status;if(c)c.textContent=status}
+const backHomeLogin=$("backHomeFromLogin");if(backHomeLogin)backHomeLogin.onclick=goHome;
+const enterArena=$ ("enterArenaBtn");
+if(enterArena)enterArena.onclick=()=>{hide("homeScreen");if(me){if(me.approved===false||!me.kingdom)showPending();else{show("mapScreen");renderAll()}}else show("loginScreen")};
+const homeNav=$ ("homeNavBtn");if(homeNav)homeNav.onclick=goHome;
+const rulesNav=$ ("rulesBtn");if(rulesNav)rulesNav.onclick=()=>show("rulesModal");
+const matchesNav=$ ("matchesBtn");if(matchesNav)matchesNav.onclick=()=>{renderPublicMatches();show("matchesModal")};
+function renderPublicMatches(){const el=$("publicMatches");if(!el||!state)return;const active=Object.values(state.challenges||{});const rows=active.map(ch=>{const t=state.territories.find(x=>x.id===ch.territoryId);return `<div class="public-match"><div><b>Territory ${t?.num||"?"}</b><br><small>${esc(K(ch.attackerKingdom)?.name||"Attacker")} vs ${esc(K(ch.defenderKingdom)?.name||"Defender")}</small></div><strong>${esc(ch.status.toUpperCase())}</strong></div>`});el.innerHTML=rows.join("")||"<div class='admin-empty'>No active matches right now.</div>"}
+document.querySelectorAll("[data-home-nav]").forEach(btn=>btn.addEventListener("click",()=>{const section=btn.dataset.homeNav;document.querySelectorAll("[data-home-nav]").forEach(x=>x.classList.toggle("active",x===btn));if(section==="home"){goHome();return}if(section==="map"){if(me&&me.approved!==false&&me.kingdom){hide("homeScreen");hide("scoreScreen");show("mapScreen")}else{hide("homeScreen");show("loginScreen")}return}if(section==="leaderboard"){if(state){renderScore();hide("homeScreen");hide("mapScreen");show("scoreScreen")}else toast("Enter the arena to view live rankings.");return}if(section==="rules"){show("rulesModal");return}if(section==="players"){if(state){renderPublicPlayers();show("playersModal")}else toast("Enter the arena to view the roster.");return}if(section==="matches"){if(state){renderPublicMatches();show("matchesModal")}else toast("Enter the arena to view matches.");return}if(section==="admin"){window.location.href="/admin"}}));
+
+setInterval(updateHomeStatus,1000);

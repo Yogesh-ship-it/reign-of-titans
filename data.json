@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 6,
   "tournamentStartedAt": null,
   "players": {
     "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
@@ -13,7 +13,9 @@
       "label": "Frosthold A",
       "wins": 3,
       "losses": 0,
-      "registeredAt": 1791211126255
+      "registeredAt": 1791211126255,
+      "approved": true,
+      "approvalStatus": "approved"
     },
     "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d": {
       "id": "2d4cc76f-6886-40ad-a1cc-ce21e57c0c4d",
@@ -26,7 +28,9 @@
       "label": "Stoneheart A",
       "wins": 1,
       "losses": 0,
-      "registeredAt": 1791215669435
+      "registeredAt": 1791215669435,
+      "approved": true,
+      "approvalStatus": "approved"
     },
     "75e716f9-ddf7-4abf-a4db-981783c64944": {
       "id": "75e716f9-ddf7-4abf-a4db-981783c64944",
@@ -39,7 +43,9 @@
       "label": "Stoneheart B",
       "wins": 1,
       "losses": 0,
-      "registeredAt": 1791216084773
+      "registeredAt": 1791216084773,
+      "approved": true,
+      "approvalStatus": "approved"
     },
     "1dac3372-015b-42b8-9125-8348d186fd8e": {
       "id": "1dac3372-015b-42b8-9125-8348d186fd8e",
@@ -52,7 +58,9 @@
       "label": "Frosthold B",
       "wins": 0,
       "losses": 0,
-      "registeredAt": 1791284962165
+      "registeredAt": 1791284962165,
+      "approved": true,
+      "approvalStatus": "approved"
     }
   },
   "playerOrder": [
@@ -66,631 +74,1051 @@
       "id": "verdant-1",
       "num": 1,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-2",
       "num": 2,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-3",
       "num": 3,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-4",
       "num": 4,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-5",
       "num": 5,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-6",
       "num": 6,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-7",
       "num": 7,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-8",
       "num": 8,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-9",
       "num": 9,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-10",
       "num": 10,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-11",
       "num": 11,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-12",
       "num": 12,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-13",
       "num": 13,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-14",
       "num": 14,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "verdant-15",
       "num": 15,
       "kingdom": "verdant",
-      "originalKingdom": "verdant"
+      "originalKingdom": "verdant",
+      "defensePoints": 3
     },
     {
       "id": "frost-1",
       "num": 1,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-2",
       "num": 2,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-3",
       "num": 3,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-4",
       "num": 4,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-5",
       "num": 5,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-6",
       "num": 6,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-7",
       "num": 7,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-8",
       "num": 8,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-9",
       "num": 9,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-10",
       "num": 10,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-11",
       "num": 11,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-12",
       "num": 12,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-13",
       "num": 13,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-14",
       "num": 14,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "frost-15",
       "num": 15,
       "kingdom": "frost",
-      "originalKingdom": "frost"
+      "originalKingdom": "frost",
+      "defensePoints": 3
     },
     {
       "id": "stone-1",
       "num": 1,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-2",
       "num": 2,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-3",
       "num": 3,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-4",
       "num": 4,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-5",
       "num": 5,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-6",
       "num": 6,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-7",
       "num": 7,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-8",
       "num": 8,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-9",
       "num": 9,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-10",
       "num": 10,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-11",
       "num": 11,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-12",
       "num": 12,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-13",
       "num": 13,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-14",
       "num": 14,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "stone-15",
       "num": 15,
       "kingdom": "stone",
-      "originalKingdom": "stone"
+      "originalKingdom": "stone",
+      "defensePoints": 3
     },
     {
       "id": "sky-1",
       "num": 1,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-2",
       "num": 2,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-3",
       "num": 3,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-4",
       "num": 4,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-5",
       "num": 5,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-6",
       "num": 6,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-7",
       "num": 7,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-8",
       "num": 8,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-9",
       "num": 9,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-10",
       "num": 10,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-11",
       "num": 11,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-12",
       "num": 12,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-13",
       "num": 13,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-14",
       "num": 14,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sky-15",
       "num": 15,
       "kingdom": "sky",
-      "originalKingdom": "sky"
+      "originalKingdom": "sky",
+      "defensePoints": 3
     },
     {
       "id": "sun-1",
       "num": 1,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-2",
       "num": 2,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-3",
       "num": 3,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-4",
       "num": 4,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-5",
       "num": 5,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-6",
       "num": 6,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-7",
       "num": 7,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-8",
       "num": 8,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-9",
       "num": 9,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-10",
       "num": 10,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-11",
       "num": 11,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-12",
       "num": 12,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-13",
       "num": 13,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-14",
       "num": 14,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "sun-15",
       "num": 15,
       "kingdom": "sun",
-      "originalKingdom": "sun"
+      "originalKingdom": "sun",
+      "defensePoints": 3
     },
     {
       "id": "ember-1",
       "num": 1,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-2",
       "num": 2,
       "kingdom": "stone",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-3",
       "num": 3,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-4",
       "num": 4,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-5",
       "num": 5,
       "kingdom": "frost",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-6",
       "num": 6,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-7",
       "num": 7,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-8",
       "num": 8,
       "kingdom": "frost",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-9",
       "num": 9,
       "kingdom": "frost",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-10",
       "num": 10,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-11",
       "num": 11,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-12",
       "num": 12,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-13",
       "num": 13,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-14",
       "num": 14,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "ember-15",
       "num": 15,
       "kingdom": "ember",
-      "originalKingdom": "ember"
+      "originalKingdom": "ember",
+      "defensePoints": 3
     },
     {
       "id": "shadow-1",
       "num": 1,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-2",
       "num": 2,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-3",
       "num": 3,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-4",
       "num": 4,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-5",
       "num": 5,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-6",
       "num": 6,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-7",
       "num": 7,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-8",
       "num": 8,
       "kingdom": "stone",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-9",
       "num": 9,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-10",
       "num": 10,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-11",
       "num": 11,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-12",
       "num": 12,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-13",
       "num": 13,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-14",
       "num": 14,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
     },
     {
       "id": "shadow-15",
       "num": 15,
       "kingdom": "shadow",
-      "originalKingdom": "shadow"
+      "originalKingdom": "shadow",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-1",
+      "num": 1,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-2",
+      "num": 2,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-3",
+      "num": 3,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-4",
+      "num": 4,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-5",
+      "num": 5,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-6",
+      "num": 6,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-7",
+      "num": 7,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-8",
+      "num": 8,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-9",
+      "num": 9,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-10",
+      "num": 10,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-11",
+      "num": 11,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-12",
+      "num": 12,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-13",
+      "num": 13,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-14",
+      "num": 14,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "storm-15",
+      "num": 15,
+      "kingdom": "storm",
+      "originalKingdom": "storm",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-1",
+      "num": 1,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-2",
+      "num": 2,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-3",
+      "num": 3,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-4",
+      "num": 4,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-5",
+      "num": 5,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-6",
+      "num": 6,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-7",
+      "num": 7,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-8",
+      "num": 8,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-9",
+      "num": 9,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-10",
+      "num": 10,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-11",
+      "num": 11,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-12",
+      "num": 12,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-13",
+      "num": 13,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-14",
+      "num": 14,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "void-15",
+      "num": 15,
+      "kingdom": "void",
+      "originalKingdom": "void",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-1",
+      "num": 1,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-2",
+      "num": 2,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-3",
+      "num": 3,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-4",
+      "num": 4,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-5",
+      "num": 5,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-6",
+      "num": 6,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-7",
+      "num": 7,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-8",
+      "num": 8,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-9",
+      "num": 9,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-10",
+      "num": 10,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-11",
+      "num": 11,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-12",
+      "num": 12,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-13",
+      "num": 13,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-14",
+      "num": 14,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
+    },
+    {
+      "id": "crimson-15",
+      "num": 15,
+      "kingdom": "crimson",
+      "originalKingdom": "crimson",
+      "defensePoints": 3
     }
   ],
   "challenges": {},
@@ -1001,8 +1429,13 @@
     "sky": 3,
     "sun": 3,
     "ember": 3,
-    "shadow": 3
+    "shadow": 3,
+    "storm": 3,
+    "void": 3,
+    "crimson": 3
   },
+  "attackHistoryByKingdom": {},
+  "lastOpponentByAttackingKingdom": {},
   "matchUsage": {
     "players": {
       "b8267732-1e5d-481a-ad40-d6ad71d0d769": {
@@ -1027,6 +1460,5 @@
       }
     }
   },
-  "lastDefenseRegenAt": 1792347991648,
-  "lastOpponentByAttackingKingdom": {}
+  "lastDefenseRegenAt": 1792600562311
 }

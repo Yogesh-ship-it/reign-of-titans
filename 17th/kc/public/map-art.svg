@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200" width="1800" height="1200">
+<defs>
+ <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#061625"/><stop offset=".48" stop-color="#0a3044"/><stop offset="1" stop-color="#020a15"/></linearGradient>
+ <linearGradient id="land" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#496d60"/><stop offset=".45" stop-color="#263e3c"/><stop offset="1" stop-color="#111e29"/></linearGradient>
+ <linearGradient id="goldland" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c6a45a"/><stop offset=".45" stop-color="#5b5335"/><stop offset="1" stop-color="#1b2630"/></linearGradient>
+ <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4e9f7"/><stop offset=".4" stop-color="#668ba5"/><stop offset="1" stop-color="#1c3449"/></linearGradient>
+ <linearGradient id="fire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e86b39"/><stop offset=".5" stop-color="#762c28"/><stop offset="1" stop-color="#1a1724"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="12"/></filter>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000" flood-opacity=".7"/></filter>
+ <pattern id="waves" width="170" height="110" patternUnits="userSpaceOnUse"><path d="M-20 30 Q20 14 60 30 T140 30 M20 82 Q60 66 100 82 T180 82" fill="none" stroke="#55c4db" stroke-opacity=".12" stroke-width="2"/></pattern>
+</defs>
+<rect width="1800" height="1200" fill="url(#sea)"/><rect width="1800" height="1200" fill="url(#waves)"/>
+<!-- ocean channels and sea glints -->
+<g fill="none" stroke="#3da6bd" stroke-opacity=".28" stroke-width="4"><path d="M0 210 C260 170 300 340 520 320 S790 230 930 340 S1250 400 1800 290"/><path d="M0 570 C240 510 330 650 520 620 S850 520 980 640 S1320 710 1800 590"/><path d="M0 960 C250 870 390 1010 620 950 S980 880 1190 1000 S1530 1040 1800 930"/></g>
+<!-- island halos -->
+<g opacity=".25" filter="url(#glow)"><ellipse cx="270" cy="170" rx="190" ry="125" fill="#4d9bd2"/><ellipse cx="900" cy="150" rx="180" ry="125" fill="#e3b65d"/><ellipse cx="1510" cy="175" rx="190" ry="130" fill="#e45d3f"/><ellipse cx="145" cy="500" rx="160" ry="145" fill="#a744d8"/><ellipse cx="500" cy="500" rx="160" ry="140" fill="#45ad6a"/><ellipse cx="940" cy="500" rx="170" ry="140" fill="#c7d4dc"/><ellipse cx="1650" cy="500" rx="160" ry="140" fill="#9d4cdb"/><ellipse cx="260" cy="920" rx="185" ry="135" fill="#df3d38"/><ellipse cx="850" cy="920" rx="180" ry="135" fill="#d5c58c"/><ellipse cx="1450" cy="920" rx="190" ry="135" fill="#4a9be1"/></g>
+<!-- ten distinct island realms -->
+<g filter="url(#shadow)" stroke-width="5">
+<path d="M90 150 L135 85 205 70 270 88 335 70 405 120 430 175 395 235 330 260 260 245 205 270 135 235 80 200Z" fill="url(#ice)" stroke="#78b9e0"/>
+<path d="M650 135 L700 80 770 65 835 80 900 55 965 85 1035 80 1090 130 1080 195 1020 245 945 250 885 270 810 245 735 260 675 210Z" fill="url(#goldland)" stroke="#e5c36d"/>
+<path d="M1320 155 L1360 90 1430 65 1495 85 1565 70 1645 110 1705 150 1690 220 1630 250 1565 265 1490 240 1420 265 1350 220Z" fill="url(#fire)" stroke="#ff8051"/>
+<path d="M25 485 L70 415 135 390 200 410 250 390 300 430 310 495 275 550 220 575 160 560 105 585 45 545Z" fill="#34234e" stroke="#b95df0"/>
+<path d="M350 485 L390 415 455 390 515 410 575 390 630 425 650 490 620 550 555 570 495 555 435 580 375 545Z" fill="url(#land)" stroke="#68d17e"/>
+<path d="M790 485 L835 415 900 390 965 405 1025 390 1085 430 1100 495 1065 550 1000 575 940 555 875 580 815 545Z" fill="url(#ice)" stroke="#dcebf5"/>
+<path d="M1480 485 L1520 415 1585 390 1645 410 1705 390 1760 435 1780 495 1745 550 1680 575 1620 555 1560 580 1500 545Z" fill="#35234f" stroke="#c66af4"/>
+<path d="M90 900 L135 825 205 800 270 815 335 800 405 840 430 900 395 965 330 990 265 975 200 1000 135 965 80 930Z" fill="url(#fire)" stroke="#ff6451"/>
+<path d="M650 900 L700 825 770 800 835 815 900 800 965 840 990 900 955 965 890 990 825 975 760 1000 695 965 640 930Z" fill="url(#goldland)" stroke="#e8d59c"/>
+<path d="M1250 900 L1300 825 1370 800 1435 815 1500 800 1565 840 1590 900 1555 965 1490 990 1425 975 1360 1000 1295 965 1240 930Z" fill="url(#ice)" stroke="#7fc4f7"/>
+</g>
+<!-- ridges, rivers and castles -->
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".7">
+<g stroke="#d3f1ff" stroke-width="7"><path d="M145 190 l45 -55 30 45 35 -70 42 65 35 -35"/><path d="M1380 180 l42 -55 34 42 30 -72 42 60 40 -30"/><path d="M1290 925 l45 -52 28 42 40 -68 38 62 38 -30"/></g>
+<g stroke="#e6c26b" stroke-width="6"><path d="M735 175 l40 -45 32 36 35 -65 42 50 30 -22"/><path d="M730 940 l40 -45 32 36 35 -65 42 50 30 -22"/></g>
+<g stroke="#7fd7e5" stroke-width="5"><path d="M105 490 q55 25 95 -10 t75 5"/><path d="M430 495 q55 25 95 -10 t75 5"/><path d="M870 495 q55 25 95 -10 t75 5"/><path d="M1530 495 q55 25 95 -10 t75 5"/></g>
+</g>
+<g fill="#f2d78d" stroke="#151d28" stroke-width="4" filter="url(#shadow)">
+<g transform="translate(880 170)"><path d="M-48 30V-12h18v-25h20v25h20v-40h20v40h20v-25h18v67Z"/><rect x="-28" y="10" width="18" height="20" fill="#26313b"/><rect x="10" y="10" width="18" height="20" fill="#26313b"/></g>
+<g transform="translate(230 180)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#d9efff"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
+<g transform="translate(1515 180)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#ffb08b"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
+<g transform="translate(505 500) scale(.8)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#b2f1b9"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
+<g transform="translate(940 500) scale(.8)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#f0f6fa"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
+<g transform="translate(845 920) scale(.8)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#fff0b5"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
+</g>
+<!-- realm nameplates; clickable territory flags are rendered by the live application above this artwork -->
+<g font-family="Georgia,serif" font-weight="bold" text-anchor="middle" fill="#f7e8bc" stroke="#111821" stroke-width="4" paint-order="stroke" font-size="27" letter-spacing="2">
+<text x="255" y="310">NORTHGARD</text><text x="875" y="315">VALORIA</text><text x="1515" y="315">EMBERFALL</text>
+<text x="165" y="655">SHADOW REALM</text><text x="500" y="655">STORMLANDS</text><text x="945" y="655">IRONCLAD</text><text x="1640" y="655">VOID EMPIRE</text>
+<text x="255" y="1070">CRIMSON HOLD</text><text x="820" y="1070">SILVERDAWN</text><text x="1420" y="1070">FROSTFANG</text>
+</g>
+<g fill="#d8c184" opacity=".8"><circle cx="55" cy="70" r="3"/><circle cx="1735" cy="350" r="4"/><circle cx="1150" cy="1080" r="3"/><circle cx="600" cy="335" r="3"/><circle cx="1200" cy="710" r="4"/><circle cx="520" cy="1080" r="3"/></g>
+</svg>

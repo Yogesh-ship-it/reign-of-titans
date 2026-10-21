@@ -67,14 +67,19 @@ function load(){
       const parsed=JSON.parse(fs.readFileSync(DATA_FILE,"utf8"));
       if((parsed.version>=3) && Array.isArray(parsed.territories) && parsed.territories.length>=105){
         if(parsed.version===3){
+          // v3 used 0/1/2 as accumulated unanswered counts. v4+ uses remaining Defense Points.
           const old=parsed.defensePoints||{};
           parsed.defensePoints=Object.fromEntries(kingdoms.map(k=>{const n=Number(old[k.id]);return [k.id,Number.isFinite(n)?Math.max(0,Math.min(3,3-n)):3]}));
         }
+        // Keep every existing registration. Previously assigned players stay approved;
+        // unassigned legacy registrations remain pending for admin review.
         parsed.players=parsed.players||{};
         for(const player of Object.values(parsed.players)){
           if(typeof player.approved!=="boolean") player.approved=!!player.kingdom;
           if(!player.approvalStatus) player.approvalStatus=player.approved?"approved":"pending";
         }
+        // Expand legacy 7-kingdom saves to the 10-kingdom / 150-territory format
+        // without deleting registrations, approvals, assignments, or existing territory ownership.
         const existingIds=new Set(parsed.territories.map(t=>t.id));
         for(const k of kingdoms){
           for(let i=1;i<=15;i++){
@@ -101,6 +106,7 @@ function ensureStateShape(){
   state.defensePoints=state.defensePoints||{};
   kingdoms.forEach(k=>{ if(!Number.isFinite(state.defensePoints[k.id])) state.defensePoints[k.id]=3; state.defensePoints[k.id]=Math.max(0,Math.min(3,Math.round(state.defensePoints[k.id]))); });
   if(!state.matchUsage || typeof state.matchUsage!=="object") state.matchUsage={players:{}};
+  // Migrate older shared-hour counters to personal rolling two-hour windows.
   if(!state.matchUsage.players || typeof state.matchUsage.players!=="object"){
     const old=state.matchUsage.counts||{};
     state.matchUsage={players:{}};
@@ -113,6 +119,7 @@ function ensureStateShape(){
     if(typeof p.approved!=="boolean") p.approved=!!p.kingdom;
     if(!p.approvalStatus) p.approvalStatus=p.approved?"approved":"pending";
   }
+  // Ensure each territory has its own Defense Point balance.
   for(const t of state.territories){if(!Number.isFinite(Number(t.defensePoints)))t.defensePoints=3;t.defensePoints=Math.max(0,Math.min(3,Number(t.defensePoints)));}
   state.version=6;
 }
@@ -155,6 +162,7 @@ function regenerateDefensePoints(){
   state.lastDefenseRegenAt+=hours*3600000;
   return true;
 }
+
 function save(s){
   const dir=path.dirname(DATA_FILE);
   fs.mkdirSync(dir,{recursive:true});
@@ -203,10 +211,10 @@ function emitPlayer(playerId,event,payload){
   for(const sid of socketIdsForPlayer(playerId))io.to(sid).emit(event,payload)
 }
 function playerInMatch(playerId){
-  return Object.values(state.challenges).some(ch=>[ch.attackerId,ch.defenderId].includes(playerId) && ["accepted","ready","reported","disputed"].includes(ch.status));
+  return Object.values(state.challenges).some(ch=>[ch.attackerId,ch.defenderId].includes(playerId)&&["accepted","ready","reported","disputed"].includes(ch.status));
 }
 function notifyKingdom(kid,event,payload){
-  Object.values(state.players).filter(p=>p.kingdom===kid && !(event==="challengeIncoming" && playerInMatch(p.id))).forEach(p=>emitPlayer(p.id,event,payload))
+  Object.values(state.players).filter(p=>p.kingdom===kid && !(event==="challengeIncoming"&&playerInMatch(p.id))).forEach(p=>emitPlayer(p.id,event,payload))
 }
 function emitAdmins(event,payload){
   for(const s of io.sockets.sockets.values()) if(s.data.isAdmin) s.emit(event,payload)
@@ -218,15 +226,16 @@ function addNotice(message,kingdomId=null){
 }
 function broadcast(){
   save(state);io.emit("state",publicState());
+  // Match counts are private to each player; only send each player their own usage.
   for(const p of Object.values(state.players)) emitPlayer(p.id,"myMatchUsage",publicUsage(p.id));
 }
 function slotFor(kid){
-  const used=Object.values(state.players).filter(p=>p.approved!==false && p.kingdom===kid).length;
+  const used=Object.values(state.players).filter(p=>p.approved!==false&&p.kingdom===kid).length;
   return used<3?used+1:null;
 }
 function labelFor(kid,slot){return `${K(kid).name} ${String.fromCharCode(64+slot)}`}
 function activeChallengeForTerritory(tid){
-  return Object.values(state.challenges).find(c=>c.territoryId===tid && c.status!=="resolved")
+  return Object.values(state.challenges).find(c=>c.territoryId===tid&&c.status!=="resolved")
 }
 function resolve(chId,winnerId,reason){
   const ch=state.challenges[chId],winner=state.players[winnerId];
@@ -238,7 +247,7 @@ function resolve(chId,winnerId,reason){
   if(attackingKingdom && ch.defenderKingdom) state.lastOpponentByAttackingKingdom[attackingKingdom]=ch.defenderKingdom;
   const loserId=winnerId===ch.attackerId?ch.defenderId:ch.attackerId;
   winner.wins++;
-  if(loserId && state.players[loserId])state.players[loserId].losses++;
+  if(loserId&&state.players[loserId])state.players[loserId].losses++;
   t.kingdom=winner.kingdom;
   ch.status="resolved";ch.winnerId=winnerId;ch.resolutionReason=reason;ch.resolvedAt=Date.now();
   const completed={...ch,territory:{...t},winner:publicPlayer(winner),reports:state.reports[chId]||{},completedAt:Date.now()};
@@ -264,7 +273,7 @@ function applyDefensiveFailure(ch, source){
     resolve(ch.id,attacker.id,`Automatic occupation: ${K(defenderKingdom)?.name||"The defending Kingdom"} had zero Defense Points and ${failureText}.`);
     const detail=source==="the challenge expired"?"failed to respond within 15 minutes":"declined the challenge";
     emitPlayer(attacker.id,"walkover",{challengeId:ch.id,title:"TERRITORY OCCUPIED!",message:`The defending Kingdom had zero Defense Points and ${detail}. The territory has been occupied.`});
-    notifyKingdom(defenderKingdom,"walkover",{challengeId:ch.id,title:"TERRITORY LOST",message:`Your Kingdom had zero Defense Points and ${detail}.`});
+    notifyKingdom(defenderKingdom,"walkover",{challengeId:ch.id,title:"TERRITORY LOST",message:`Your Kingdom had zero Defense Points and ${detail}. The territory has been occupied.`});
     return;
   }
   if(challengedTerritory)challengedTerritory.defensePoints=points-1;
@@ -299,6 +308,7 @@ function expireCheckin(chId){
   emitPlayer(winnerId,"walkover",{challengeId:chId,title:"VICTORY BY WALKOVER!",message:"Your opponent did not check in within five minutes."});
   if(loserId)emitPlayer(loserId,"walkover",{challengeId:chId,title:"DEFEAT BY WALKOVER",message:"You did not check in within five minutes."});
 }
+
 function evaluate(chId){
   const ch=state.challenges[chId],r=state.reports[chId]||{};
   if(!ch)return;
@@ -325,6 +335,7 @@ function evaluate(chId){
   emitAdmins("resultReportedAdmin",{challenge:ch,reports:r});
   broadcast();
 }
+
 setInterval(()=>{
   const now=Date.now();
   let changed=regenerateDefensePoints();
@@ -357,6 +368,8 @@ app.get("/admin",(req,res)=>res.sendFile(path.join(__dirname,"public","admin.htm
 app.use(express.static(path.join(__dirname,"public")));
 
 function clientIp(socket){
+  // Use proxy headers only when explicitly configured for a trusted reverse proxy.
+  // Otherwise use the socket peer address to avoid trusting spoofed X-Forwarded-For values.
   if(process.env.TRUST_PROXY === "true"){
     const forwarded=String(socket.handshake.headers["x-forwarded-for"]||"").split(",")[0].trim();
     if(forwarded) return forwarded.slice(0,100);
@@ -381,19 +394,27 @@ function lookupIpLocation(ip){
         try{
           const d=JSON.parse(body);
           const lat=Number(d.latitude),lon=Number(d.longitude);
-          const result=(!d.error && Number.isFinite(lat) && Number.isFinite(lon))?{city:String(d.city||"").slice(0,100),region:String(d.region||"").slice(0,100),country:String(d.country_name||d.country||"").slice(0,100),latitude:lat,longitude:lon,source:"IP geolocation",updatedAt:Date.now()}:null;
+          const result=(!d.error && Number.isFinite(lat) && Number.isFinite(lon))?{
+            city:String(d.city||"").slice(0,100),
+            region:String(d.region||"").slice(0,100),
+            country:String(d.country_name||d.country||"").slice(0,100),
+            latitude:lat,longitude:lon,
+            source:"IP geolocation",
+            updatedAt:Date.now()
+          }:null;
           geoCache.set(ip,result);resolve(result);
         }catch{resolve(null)}
       });
     });
     req.on("timeout",()=>{req.destroy();resolve(null)});
-    req.on("error",()=>{resolve(null)});
+    req.on("error",()=>resolve(null));
   });
 }
 async function updatePlayerGeo(playerId,ip){
   const p=state.players[playerId]; if(!p || !isPublicIp(ip)) return;
   const location=await lookupIpLocation(ip);
   if(!location || !state.players[playerId]) return;
+  // Avoid applying a slow response to a newer connection from another IP.
   if(state.players[playerId].lastIpAddress!==ip) return;
   state.players[playerId].ipLocation=location;
   save(state);
@@ -462,6 +483,7 @@ io.on("connection",socket=>{
     if(p.approved===false)return cb?.({ok:false,error:"Approve this registration before assigning a Kingdom."});
     if(p.kingdom===kingdomId)return cb?.({ok:false,error:"Player is already assigned to this Kingdom."});
     if(slotFor(kingdomId)===null)return cb?.({ok:false,error:"That Kingdom already has 3 players."});
+    // If reassigned, free the old slot naturally; labels of other players stay stable.
     const slot=slotFor(kingdomId);
     p.kingdom=kingdomId;p.slot=slot;p.label=labelFor(kingdomId,slot);
     state.adminEvents.unshift({time:Date.now(),action:"assign",playerId,kingdomId});
@@ -593,6 +615,7 @@ io.on("connection",socket=>{
     state.reports[id]=state.reports[id]||{};
     const now=Date.now();
     const existing=state.reports[id][p.id];
+    // If the only report's 10-minute deadline has already passed, finalize it before accepting a late response.
     const currentEntries=Object.entries(state.reports[id]);
     if(ch.status==="reported"&&currentEntries.length===1&&currentEntries[0][0]!==p.id&&now>=Number(ch.resultDeadline||currentEntries[0][1].time+10*60*1000)){
       resolve(id,currentEntries[0][1].winnerId,"Opponent did not report a result within ten minutes; the submitted result was automatically confirmed.");
@@ -646,5 +669,5 @@ io.on("connection",socket=>{
 });
 
 app.get("/api/health",(req,res)=>res.json({ok:true,version:2}));
-app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","admin.html")));
+app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 server.listen(PORT,()=>console.log(`Kingdom Conquest running on http://localhost:${PORT}`));
