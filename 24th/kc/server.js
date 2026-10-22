@@ -49,6 +49,7 @@ function blankState(){
   return {
     version:6,
     tournamentStartedAt:null,
+    tournamentStoppedAt:null,
     players:{},
     playerOrder:[],
     territories,
@@ -114,6 +115,7 @@ function ensureStateShape(){
     for(const [pid,used] of Object.entries(old)) state.matchUsage.players[pid]={used:Number(used)||0,windowStart:null,resetAt:null};
   }
   if(!Number.isFinite(state.lastDefenseRegenAt)) state.lastDefenseRegenAt=Date.now();
+  if(state.tournamentStoppedAt===undefined) state.tournamentStoppedAt=null;
   if(!state.lastOpponentByAttackingKingdom || typeof state.lastOpponentByAttackingKingdom!=="object") state.lastOpponentByAttackingKingdom={};
   if(!state.attackHistoryByKingdom || typeof state.attackHistoryByKingdom!=="object") state.attackHistoryByKingdom={};
   if(!state.peaceTime || typeof state.peaceTime!=="object") state.peaceTime={startedAt:null,endsAt:null,startedBy:null};
@@ -147,7 +149,7 @@ function startMatchUsage(playerIds){
 function tournamentIsActive(now=Date.now()){
   if(state.tournamentStartedAt===null || state.tournamentStartedAt===undefined)return false;
   const startedAt=Number(state.tournamentStartedAt);
-  return Number.isFinite(startedAt) && now>=startedAt && now-startedAt<TOURNAMENT_DURATION_MS;
+  return !state.tournamentStoppedAt && Number.isFinite(startedAt) && now>=startedAt && now-startedAt<TOURNAMENT_DURATION_MS;
 }
 function peaceTimeActive(now=Date.now()){ return !!(state.peaceTime && Number(state.peaceTime.endsAt)>now); }
 function peaceTimeRemaining(now=Date.now()){ return peaceTimeActive(now)?Number(state.peaceTime.endsAt)-now:0; }
@@ -189,6 +191,7 @@ function privatePlayer(p){
 function publicState(){
   return {
     tournamentStartedAt:state.tournamentStartedAt,
+    tournamentStoppedAt:state.tournamentStoppedAt||null,
     peaceTime:state.peaceTime||{startedAt:null,endsAt:null,startedBy:null},
     players:Object.fromEntries(Object.entries(state.players).filter(([,p])=>p.approved!==false).map(([id,p])=>[id,publicPlayer(p)])),
     playerOrder:state.playerOrder,
@@ -526,7 +529,7 @@ io.on("connection",socket=>{
     const approvedPlayers=Object.values(state.players).filter(p=>p.approved!==false);
     if(approvedPlayers.length===0)return cb?.({ok:false,error:"Approve and assign players before starting the tournament."});
     if(approvedPlayers.some(p=>!p.kingdom))return cb?.({ok:false,error:"Assign every approved player to a Kingdom before starting. Pending registrations do not need assignment."});
-    state.tournamentStartedAt=Date.now();state.lastDefenseRegenAt=state.tournamentStartedAt;
+    state.tournamentStartedAt=Date.now();state.tournamentStoppedAt=null;state.lastDefenseRegenAt=state.tournamentStartedAt;
     addNotice("The 48-hour Kingdom Catch Tournament has begun.");broadcast();cb?.({ok:true});
   });
   socket.on("adminRestartTournamentTimer",cb=>{
@@ -535,6 +538,7 @@ io.on("connection",socket=>{
     // Defense Points, match history, challenges, and personal match usage for safe testing.
     const now=Date.now();
     state.tournamentStartedAt=now;
+    state.tournamentStoppedAt=null;
     state.lastDefenseRegenAt=now;
     state.adminEvents=state.adminEvents||[];
     state.adminEvents.unshift({time:now,action:"restartTournamentTimer"});
@@ -543,6 +547,19 @@ io.on("connection",socket=>{
     save(state);
     broadcast();
     cb?.({ok:true,state:adminState()});
+  });
+
+  socket.on("adminStopTournamentTimer",cb=>{
+    if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
+    if(!state.tournamentStartedAt)return cb?.({ok:false,error:"The tournament timer has not started yet."});
+    if(state.tournamentStoppedAt)return cb?.({ok:false,error:"The tournament timer is already stopped."});
+    const now=Date.now();
+    state.tournamentStoppedAt=now;
+    state.adminEvents=state.adminEvents||[];
+    state.adminEvents.unshift({time:now,action:"stopTournamentTimer"});
+    state.adminEvents=state.adminEvents.slice(0,200);
+    addNotice("The admin stopped the 48-hour tournament timer. Challenges are paused until the timer is restarted.");
+    save(state);broadcast();cb?.({ok:true,state:adminState()});
   });
 
   socket.on("adminStartPeaceTime",cb=>{

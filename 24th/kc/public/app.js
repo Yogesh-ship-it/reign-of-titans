@@ -93,7 +93,7 @@ function renderFlags(){
 }
 function openTarget(id){
   if(state?.peaceTime?.endsAt>Date.now()){showPeaceTimePopup();return}
-  if(!state?.tournamentStartedAt||Date.now()-Number(state.tournamentStartedAt)>=172800000){toast(!state?.tournamentStartedAt?"The tournament hasn't started yet!":"The 48-hour tournament has ended.");return}
+  if(!state?.tournamentStartedAt||state?.tournamentStoppedAt||Date.now()-Number(state.tournamentStartedAt)>=172800000){toast(!state?.tournamentStartedAt?"The tournament hasn't started yet!":"The 48-hour tournament has ended.");return}
   selectedTerritory=state.territories.find(t=>t.id===id);if(!selectedTerritory)return;
   const owner=K(selectedTerritory.kingdom);const ch=Object.values(state.challenges).find(c=>c.territoryId===id&&c.status!=="resolved");
   if(ch){
@@ -188,7 +188,7 @@ $("profileBtn").onclick=()=>{const k=K(me.kingdom);$("profileName").textContent=
 $("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>hide(x.dataset.close));
 
-function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED"}else{const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=r?fmt(r):"FINISHED"}updateMatchResetTimer();if(activeChallenge){const ch=state?.challenges?.[activeChallenge.id]||activeChallenge;if(ch.status==="pending")$("responseTimer").textContent=fmt(ch.expiresAt-Date.now());else if(ch.status==="accepted"&&ch.checkinExpiresAt)$("responseTimer").textContent=fmt(ch.checkinExpiresAt-Date.now())}};tick();tournamentTicker=setInterval(tick,1000)}
+function startTournamentClock(){clearInterval(tournamentTicker);const tick=()=>{if(!state.tournamentStartedAt){$("tournamentTimer").textContent="NOT STARTED"}else if(state.tournamentStoppedAt){$("tournamentTimer").textContent="STOPPED"}else{const r=Math.max(0,172800000-(Date.now()-state.tournamentStartedAt));$("tournamentTimer").textContent=r?fmt(r):"FINISHED"}updateMatchResetTimer();if(activeChallenge){const ch=state?.challenges?.[activeChallenge.id]||activeChallenge;if(ch.status==="pending")$("responseTimer").textContent=fmt(ch.expiresAt-Date.now());else if(ch.status==="accepted"&&ch.checkinExpiresAt)$("responseTimer").textContent=fmt(ch.checkinExpiresAt-Date.now())}};tick();tournamentTicker=setInterval(tick,1000)}
 
 $("adminBtn").onclick=()=>{const id=prompt("Admin ID:");if(id===null)return;const password=prompt("Admin password:");if(password===null)return;socket.emit("adminLogin",{id,password},r=>{if(!r?.ok){toast(r?.error||"Admin login failed.");return}isAdmin=true;adminState=r.state;openAdmin("roster")})};
 function openAdmin(tab){renderAdmin(tab);show("adminModal")}
@@ -200,7 +200,7 @@ document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>hide(x.datase
 
 // Landing page and section navigation
 function goHome(){hide("mapScreen");hide("scoreScreen");hide("loginScreen");hide("pendingScreen");show("homeScreen");updateHomeStatus()}
-function updateHomeStatus(){const live=!!state?.tournamentStartedAt&&Date.now()-Number(state.tournamentStartedAt)<172800000;const status=!state?.tournamentStartedAt?"NOT STARTED":live?"TOURNAMENT LIVE":"TOURNAMENT FINISHED";const a=$("homeTournamentStatus"),b=$("homeTimerStatus"),c=$("homeOverviewStatus");if(a)a.textContent=status;if(b)b.textContent=status;if(c)c.textContent=status}
+function updateHomeStatus(){const live=!!state?.tournamentStartedAt&&!state?.tournamentStoppedAt&&Date.now()-Number(state.tournamentStartedAt)<172800000;const status=!state?.tournamentStartedAt?"NOT STARTED":state?.tournamentStoppedAt?"TOURNAMENT STOPPED":live?"TOURNAMENT LIVE":"TOURNAMENT FINISHED";const a=$("homeTournamentStatus"),b=$("homeTimerStatus"),c=$("homeOverviewStatus");if(a)a.textContent=status;if(b)b.textContent=status;if(c)c.textContent=status}
 const backHomeLogin=$("backHomeFromLogin");if(backHomeLogin)backHomeLogin.onclick=goHome;
 const enterArena=$ ("enterArenaBtn");
 if(enterArena)enterArena.onclick=()=>{hide("homeScreen");if(me){if(me.approved===false||!me.kingdom)showPending();else{show("mapScreen");renderAll()}}else show("loginScreen")};
