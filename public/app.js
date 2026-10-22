@@ -64,11 +64,17 @@ function renderFlags() {
   // territory changes flag color but stays in its original territory location.
   // Expanded territory zones give every 3×5 flag grid more breathing room.
   const zones = [
-    { id: "frost", x: [6, 22], y: [4, 22] }, { id: "verdant", x: [39, 57], y: [3, 22] },
-    { id: "ember", x: [73, 91], y: [4, 22] }, { id: "shadow", x: [1, 17], y: [32, 50] },
-    { id: "storm", x: [18, 34], y: [32, 50] }, { id: "stone", x: [42, 58], y: [32, 50] },
-    { id: "void", x: [83, 99], y: [32, 50] }, { id: "crimson", x: [4, 21], y: [62, 81] },
-    { id: "sun", x: [32, 50], y: [62, 81] }, { id: "sky", x: [68, 86], y: [62, 81] }
+    // Original territory IDs are preserved; each realm's 15 clickable flags form a 3×5 grid.
+    { id: "frost", x: [15.7, 24.1], y: [5.8, 14.8] },
+    { id: "ember", x: [35.5, 43.9], y: [6.0, 15.0] },
+    { id: "sun", x: [59.0, 67.4], y: [5.5, 14.5] },
+    { id: "void", x: [82.0, 90.4], y: [7.0, 16.0] },
+    { id: "verdant", x: [14.0, 22.4], y: [29.5, 38.5] },
+    { id: "storm", x: [75.0, 83.4], y: [30.5, 39.5] },
+    { id: "crimson", x: [9.0, 17.4], y: [61.0, 70.0] },
+    { id: "shadow", x: [33.0, 41.4], y: [60.0, 69.0] },
+    { id: "sky", x: [56.0, 64.4], y: [61.0, 70.0] },
+    { id: "stone", x: [80.0, 88.4], y: [61.0, 70.0] }
   ];
   const spots = [];
   for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) spots.push([(c + 0.5) / 5, (r + 0.5) / 3]);

@@ -130,3 +130,15 @@
 .peace-admin-control{grid-column:1/-1;padding:18px;border:1px solid #416b5c;border-radius:8px;background:linear-gradient(120deg,#0b211c,#101822);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .peace-admin-control small{color:#83c9ad;letter-spacing:1px}.peace-admin-control>b{color:#f0d17b;font:20px Cinzel,serif}.peace-admin-control>span{font:700 18px Inter,sans-serif;color:#fff}.peace-admin-control p{flex-basis:100%;margin:0}
 @media(max-width:900px){.map-canvas{width:1600px!important;min-width:1600px!important}.admin-map-canvas{width:1600px!important;min-width:1600px!important}}
+
+/* 3D fantasy world map upgrade: existing live territory buttons remain interactive. */
+.map-canvas{isolation:isolate;background:#030711;box-shadow:0 0 45px rgba(28,111,255,.16),0 0 90px rgba(0,0,0,.8);overflow:hidden}
+.map-canvas>img{object-fit:cover;filter:saturate(1.08) contrast(1.04)}
+.map-caption{display:none}
+.territory-flag{width:29px;height:38px;filter:drop-shadow(0 3px 4px #000) drop-shadow(0 0 7px color-mix(in srgb,var(--flag),white 30%))}
+.territory-flag::before{left:4px;top:0;width:22px;height:23px;background:linear-gradient(145deg,color-mix(in srgb,var(--flag),white 34%),color-mix(in srgb,var(--flag),black 24%));clip-path:polygon(0 0,100% 0,100% 75%,50% 100%,0 75%);border:1px solid rgba(255,255,255,.82);box-shadow:0 0 10px color-mix(in srgb,var(--flag),white 45%),inset 0 0 5px rgba(255,255,255,.28)}
+.territory-flag::after{left:3px;top:21px;width:3px;height:17px;background:linear-gradient(#fff7dc,#8d9aa8);box-shadow:0 0 5px rgba(255,255,255,.5)}
+.territory-flag.friendly::before{outline:1px solid rgba(255,255,255,.45)}
+.territory-flag.enemy{opacity:.96}
+.territory-flag:hover{transform:translate(-50%,-50%) scale(1.24);z-index:40}
+@media(max-width:700px){.map-canvas{min-width:1000px}.territory-flag{width:27px;height:36px}}
