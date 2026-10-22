@@ -107,3 +107,26 @@
 .home-panel small{font-size:8px;line-height:1.6;color:#7f8da0;letter-spacing:.5px;}
 @media(max-width:1050px){.home-overview{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:620px){.home-overview{grid-template-columns:1fr;padding:12px 12px 70px;}.home-panel{padding:15px}.home-hero{min-height:calc(100vh - 150px)}.home-bottom{position:relative;gap:12px;flex-wrap:wrap}}
+
+/* 2026 tournament update: larger scrollable battlefield and Peace Time UI */
+.map-viewport{overflow:auto!important;position:relative;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#8e6b2b #080b10}
+.map-canvas{width:1900px!important;min-width:1900px!important;height:auto;aspect-ratio:3/2;margin:0!important}
+.map-canvas>img{object-fit:fill}
+.territory-flag{width:34px!important;height:42px!important;filter:drop-shadow(0 2px 4px #000) drop-shadow(0 0 7px var(--flag))!important}
+.territory-flag::before{left:4px!important;width:26px!important;height:29px!important;box-shadow:0 0 7px var(--flag)!important}
+.territory-flag::after{top:27px!important;height:15px!important}
+.territory-flag.blinking{animation:flagBlink 1.1s ease-in-out infinite!important}
+.admin-map-wrap{overflow:auto!important;overscroll-behavior:contain}
+.admin-map-canvas{width:1900px!important;min-width:1900px!important;height:auto;aspect-ratio:3/2;margin:0!important}
+.admin-map-canvas>img{object-fit:fill}
+.admin-map-flag{width:36px!important;height:44px!important;filter:drop-shadow(0 0 7px var(--flag))!important}
+.admin-map-flag::before{left:4px!important;width:27px!important;height:30px!important;box-shadow:0 0 7px var(--flag)!important}
+.admin-map-flag::after{top:29px!important;height:15px!important}
+.peace-time-banner{position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:12px 18px;background:linear-gradient(90deg,#10352d,#1a5b49,#10352d);border-bottom:1px solid #78d5b4;color:#e5fff4;font:700 12px Cinzel,serif;box-shadow:0 4px 16px #0008}
+.peace-time-banner strong{font:800 18px Inter,sans-serif;color:#ffe18a;letter-spacing:2px}
+.peace-time-banner span{font:10px Inter,sans-serif;color:#bde8d7}
+.peace-popup{text-align:center;border-color:#73c7a5!important}
+.peace-popup-clock{font:800 32px Inter,sans-serif;letter-spacing:3px;color:#f0d17b;margin:18px 0;padding:14px;border:1px solid #416b5c;border-radius:8px;background:#071a16}
+.peace-admin-control{grid-column:1/-1;padding:18px;border:1px solid #416b5c;border-radius:8px;background:linear-gradient(120deg,#0b211c,#101822);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.peace-admin-control small{color:#83c9ad;letter-spacing:1px}.peace-admin-control>b{color:#f0d17b;font:20px Cinzel,serif}.peace-admin-control>span{font:700 18px Inter,sans-serif;color:#fff}.peace-admin-control p{flex-basis:100%;margin:0}
+@media(max-width:900px){.map-canvas{width:1600px!important;min-width:1600px!important}.admin-map-canvas{width:1600px!important;min-width:1600px!important}}

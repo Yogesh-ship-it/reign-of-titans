@@ -16,7 +16,7 @@ socket.on("myMatchUsage",usage=>{myMatchUsage=usage||myMatchUsage;renderMatchLim
 socket.on("registered",({player,state:s})=>{me=player;state=s;playerReady()});
 socket.on("approvalUpdated",p=>{me=p;if(state?.players)state.players[p.id]=p;playerReady();toast("Your registration has been approved.")});
 socket.on("assigned",p=>{me=p;localStorage.setItem("kcPlayerId",p.id);playerReady();toast(`Kingdom assigned: ${p.label}`)});
-socket.on("state",s=>{state=s;updateHomeStatus();if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
+socket.on("state",s=>{state=s;updatePeaceTimeBanner();updateHomeStatus();if(me){const fresh=state.players[me.id];if(fresh){me=fresh;if(me.kingdom)playerReady();else showPending()}renderAll()}});
 socket.on("playerRegistered",p=>{if(isAdmin)renderAdminRoster()});
 socket.on("battleAlert",n=>{toast(n.message);renderAlerts()});
 socket.on("challengeIncoming",payload=>{window.incomingChallenge=payload;toast("⚔ Your territory is being challenged.");renderAlerts();showDefenseDashboard()});
@@ -34,7 +34,7 @@ $("loginForm").onsubmit=e=>{e.preventDefault();$("loginError").textContent="";so
 $("refreshPending").onclick=()=>socket.emit("resume",me.id);
 $("pendingLogout").onclick=$("logoutBtn").onclick=()=>{localStorage.removeItem("kcPlayerId");location.reload()};
 
-function renderAll(){if(!state)return;renderFlags();renderAlerts();renderMatchLimits();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
+function renderAll(){if(!state)return;updatePeaceTimeBanner();renderFlags();renderAlerts();renderMatchLimits();if($("scoreScreen")&&!$("scoreScreen").classList.contains("hidden"))renderScore();updateActiveChallenge()}
 function renderMatchLimits(){
   const wrap=$("matchLimitPlayers");if(!wrap)return;
   if(!me){wrap.innerHTML='<span class="match-limit-empty">Register or sign in to view your match usage.</span>';updateMatchResetTimer();return}
@@ -43,6 +43,21 @@ function renderMatchLimits(){
   updateMatchResetTimer();
 }
 function updateMatchResetTimer(){const el=$("matchResetTimer");if(!el)return;const resetAt=Number(myMatchUsage?.resetAt||0);if(!resetAt){el.textContent="STARTS AFTER CHECK-IN";return}const left=Math.max(0,resetAt-Date.now());const total=Math.floor(left/1000);el.textContent=`${String(Math.floor(total/3600)).padStart(2,"0")}:${String(Math.floor((total%3600)/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;}
+function peaceFmt(ms){let sec=Math.max(0,Math.floor(ms/1000)),h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);sec%=60;return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`}
+function updatePeaceTimeBanner(){
+  const viewport=document.querySelector(".map-viewport");if(!viewport||!state)return;
+  let banner=document.getElementById("peaceTimeBanner");
+  if(state.peaceTime?.endsAt>Date.now()){
+    if(!banner){banner=document.createElement("div");banner.id="peaceTimeBanner";banner.className="peace-time-banner";viewport.prepend(banner)}
+    banner.innerHTML=`🕊️ PEACE TIME ACTIVE <strong id="peaceBannerClock">${peaceFmt(state.peaceTime.endsAt-Date.now())}</strong><span>Attacks paused · Defense Points recover as usual · Tournament clock continues</span>`;
+    clearInterval(window.peaceBannerTicker);window.peaceBannerTicker=setInterval(()=>{const clock=document.getElementById("peaceBannerClock");if(!clock||!state?.peaceTime?.endsAt){clearInterval(window.peaceBannerTicker);return}clock.textContent=peaceFmt(state.peaceTime.endsAt-Date.now());if(state.peaceTime.endsAt<=Date.now())clock.textContent="00:00:00"},1000);
+  }else{banner?.remove();clearInterval(window.peaceBannerTicker)}
+}
+function showPeaceTimePopup(){
+  let modal=document.getElementById("peaceTimePopup");if(!modal){modal=document.createElement("div");modal.id="peaceTimePopup";modal.className="modal";modal.innerHTML=`<div class="veil"></div><div class="modal-card small-card peace-popup"><div class="fighting-icon">🕊️</div><div class="eyebrow">TEMPORARY TRUCE</div><h2>PEACE TIME ACTIVE</h2><p class="muted">Territory challenges are disabled while kingdoms recover their Defense Points. Your 48-hour tournament timer continues running.</p><div class="peace-popup-clock" id="peacePopupClock">06:00:00</div><button id="peacePopupClose" class="gold-button wide">UNDERSTOOD</button></div>`;document.body.appendChild(modal);modal.querySelector("#peacePopupClose").onclick=()=>modal.classList.add("hidden")}
+  modal.classList.remove("hidden");clearInterval(window.peacePopupTicker);const tick=()=>{const left=Math.max(0,Number(state?.peaceTime?.endsAt||Date.now())-Date.now());const clock=document.getElementById("peacePopupClock");if(clock)clock.textContent=peaceFmt(left);if(left<=0){clearInterval(window.peacePopupTicker);modal.classList.add("hidden")}};tick();window.peacePopupTicker=setInterval(tick,1000);
+}
+
 function renderFlags(){
   const layer=$("flags");layer.innerHTML="";
   // Positions are based on the ORIGINAL realm shown in the artwork. A captured
@@ -77,6 +92,7 @@ function renderFlags(){
   });
 }
 function openTarget(id){
+  if(state?.peaceTime?.endsAt>Date.now()){showPeaceTimePopup();return}
   if(!state?.tournamentStartedAt||Date.now()-Number(state.tournamentStartedAt)>=172800000){toast(!state?.tournamentStartedAt?"The tournament hasn't started yet!":"The 48-hour tournament has ended.");return}
   selectedTerritory=state.territories.find(t=>t.id===id);if(!selectedTerritory)return;
   const owner=K(selectedTerritory.kingdom);const ch=Object.values(state.challenges).find(c=>c.territoryId===id&&c.status!=="resolved");
@@ -92,7 +108,7 @@ function openTarget(id){
   $("confirmChallenge").textContent=!me?.kingdom?"WAITING FOR KINGDOM ASSIGNMENT":owner.id===me.kingdom?"YOUR KINGDOM TERRITORY":"⚔ CHALLENGE THIS TERRITORY";
   show("challengePrompt");
 }
-$("confirmChallenge").onclick=()=>{if(!selectedTerritory)return;socket.emit("challengeCreate",selectedTerritory.id,r=>{if(!r?.ok)return toast(r?.error||"Challenge failed.");activeChallenge=r.challenge;hide("challengePrompt");openMatch();renderAll()})};
+$("confirmChallenge").onclick=()=>{if(!selectedTerritory)return;socket.emit("challengeCreate",selectedTerritory.id,r=>{if(!r?.ok){if(state?.peaceTime?.endsAt>Date.now())showPeaceTimePopup();else toast(r?.error||"Challenge failed.");return;}activeChallenge=r.challenge;hide("challengePrompt");openMatch();renderAll()})};
 
 function showDefenseDashboard(){const x=window.incomingChallenge;if(!x?.challenge||x.challenge.status!=="pending")return;const ch=x.challenge;$("defenseDetails").textContent=`${x.attacker?.riot||x.attacker?.name||x.attacker?.label||"An opponent"} challenged Territory ${x.territory?.num||"?"} of ${x.defenderKingdom?.name||"your Kingdom"}.`;show("defenseDashboard");const tick=()=>{const left=Math.max(0,ch.expiresAt-Date.now());$("defenseTimer").textContent=fmt(left);if(left<=0){clearInterval(window.defenseTicker);hide("defenseDashboard")}};clearInterval(window.defenseTicker);tick();window.defenseTicker=setInterval(tick,250)}
 $("acceptDefense").onclick=()=>{const ch=window.incomingChallenge?.challenge;if(!ch)return;socket.emit("challengeAccept",ch.id,r=>{if(!r?.ok){toast(r?.error||"Challenge acceptance failed.");return}window.incomingChallenge=null;hide("defenseDashboard");hide("alertsPanel");activeChallenge=state?.challenges?.[ch.id]||{...ch,...r.challenge};openMatch();renderAll()})};

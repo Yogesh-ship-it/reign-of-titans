@@ -24,7 +24,7 @@ const kingdoms = [
   {id:"verdant",name:"Valoria",color:"#d6a33c",icon:"♛"},
   {id:"frost",name:"Northgard",color:"#388ee8",icon:"❄"},
   {id:"stone",name:"Ironclad",color:"#aab4c2",icon:"⬟"},
-  {id:"sky",name:"Netherwood",color:"#23a78d",icon:"♆"},
+  {id:"sky",name:"Frostfang",color:"#23a78d",icon:"♆"},
   {id:"sun",name:"Silverdawn",color:"#e8d7a0",icon:"☀"},
   {id:"ember",name:"Emberfall",color:"#e34a24",icon:"🔥"},
   {id:"shadow",name:"Shadow Realm",color:"#9b45d5",icon:"☾"},
@@ -58,7 +58,7 @@ function blankState(){
     adminEvents:[],
     completedBattles:[],
     defensePoints:Object.fromEntries(kingdoms.map(k=>[k.id,3])),
-    matchUsage:{players:{}},lastDefenseRegenAt:Date.now(),lastOpponentByAttackingKingdom:{},attackHistoryByKingdom:{}
+    matchUsage:{players:{}},lastDefenseRegenAt:Date.now(),lastOpponentByAttackingKingdom:{},attackHistoryByKingdom:{},peaceTime:{startedAt:null,endsAt:null,startedBy:null}
   };
 }
 function load(){
@@ -91,6 +91,7 @@ function load(){
         for(const t of parsed.territories){if(!Number.isFinite(Number(t.defensePoints)))t.defensePoints=3;t.defensePoints=Math.max(0,Math.min(3,Number(t.defensePoints)));}
         if(!parsed.defensePoints)parsed.defensePoints={};
         for(const k of kingdoms)if(!Number.isFinite(Number(parsed.defensePoints[k.id])))parsed.defensePoints[k.id]=3;
+        parsed.peaceTime=parsed.peaceTime||{startedAt:null,endsAt:null,startedBy:null};
         parsed.version=6;
         if(!parsed.matchUsage || typeof parsed.matchUsage!=="object") parsed.matchUsage={players:{}};
         if(!parsed.lastOpponentByAttackingKingdom || typeof parsed.lastOpponentByAttackingKingdom!=="object") parsed.lastOpponentByAttackingKingdom={};
@@ -115,6 +116,7 @@ function ensureStateShape(){
   if(!Number.isFinite(state.lastDefenseRegenAt)) state.lastDefenseRegenAt=Date.now();
   if(!state.lastOpponentByAttackingKingdom || typeof state.lastOpponentByAttackingKingdom!=="object") state.lastOpponentByAttackingKingdom={};
   if(!state.attackHistoryByKingdom || typeof state.attackHistoryByKingdom!=="object") state.attackHistoryByKingdom={};
+  if(!state.peaceTime || typeof state.peaceTime!=="object") state.peaceTime={startedAt:null,endsAt:null,startedBy:null};
   for(const p of Object.values(state.players||{})){
     if(typeof p.approved!=="boolean") p.approved=!!p.kingdom;
     if(!p.approvalStatus) p.approvalStatus=p.approved?"approved":"pending";
@@ -147,6 +149,8 @@ function tournamentIsActive(now=Date.now()){
   const startedAt=Number(state.tournamentStartedAt);
   return Number.isFinite(startedAt) && now>=startedAt && now-startedAt<TOURNAMENT_DURATION_MS;
 }
+function peaceTimeActive(now=Date.now()){ return !!(state.peaceTime && Number(state.peaceTime.endsAt)>now); }
+function peaceTimeRemaining(now=Date.now()){ return peaceTimeActive(now)?Number(state.peaceTime.endsAt)-now:0; }
 function tournamentHasEnded(now=Date.now()){
   if(state.tournamentStartedAt===null || state.tournamentStartedAt===undefined)return false;
   const startedAt=Number(state.tournamentStartedAt);
@@ -185,6 +189,7 @@ function privatePlayer(p){
 function publicState(){
   return {
     tournamentStartedAt:state.tournamentStartedAt,
+    peaceTime:state.peaceTime||{startedAt:null,endsAt:null,startedBy:null},
     players:Object.fromEntries(Object.entries(state.players).filter(([,p])=>p.approved!==false).map(([id,p])=>[id,publicPlayer(p)])),
     playerOrder:state.playerOrder,
     territories:state.territories,
@@ -266,6 +271,7 @@ function applyDefensiveFailure(ch, source){
   const defenderKingdom=ch.defenderKingdom;
   if(!attacker || !defenderKingdom){delete state.challenges[ch.id];delete state.reports[ch.id];broadcast();return;}
   const challengedTerritory=state.territories.find(t=>t.id===ch.territoryId);
+  if(attacker.kingdom && defenderKingdom) state.lastOpponentByAttackingKingdom[attacker.kingdom]=defenderKingdom;
   const points=Math.max(0,Number(challengedTerritory?.defensePoints??3));
   const failureText=source==="the challenge expired"?"did not respond within 15 minutes":source;
   if(points===0){
@@ -339,6 +345,7 @@ function evaluate(chId){
 setInterval(()=>{
   const now=Date.now();
   let changed=regenerateDefensePoints();
+  if(state.peaceTime?.endsAt && Number(state.peaceTime.endsAt)<=now){state.peaceTime={startedAt:null,endsAt:null,startedBy:null};addNotice("Peace Time has ended. Territory challenges are available again.");io.emit("peaceTimeUpdated",state.peaceTime);changed=true;}
   if(tournamentHasEnded()){
     for(const ch of Object.values(state.challenges)){
       if(ch.status==="pending"||ch.status==="accepted"){
@@ -538,6 +545,30 @@ io.on("connection",socket=>{
     cb?.({ok:true,state:adminState()});
   });
 
+  socket.on("adminStartPeaceTime",cb=>{
+    if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
+    const now=Date.now();
+    if(!tournamentIsActive(now))return cb?.({ok:false,error:"Peace Time can only be started while the 48-hour tournament is active."});
+    if(peaceTimeActive(now))return cb?.({ok:false,error:"Peace Time is already active."});
+    state.peaceTime={startedAt:now,endsAt:now+6*60*60*1000,startedBy:ADMIN_ID};
+    // Cancel only unanswered pending challenges; do not punish defenders for an admin-started truce.
+    for(const ch of Object.values(state.challenges)){
+      if(ch.status==="pending"){
+        delete state.challenges[ch.id];delete state.reports[ch.id];
+        io.emit("challengeCancelled",{challengeId:ch.id,territoryId:ch.territoryId,reason:"Peace Time started. No Defense Point penalty was applied."});
+      }
+    }
+    state.adminEvents=state.adminEvents||[];state.adminEvents.unshift({time:now,action:"startPeaceTime",endsAt:state.peaceTime.endsAt});state.adminEvents=state.adminEvents.slice(0,200);
+    addNotice("PEACE TIME has started for 6 hours. All new territory challenges are disabled.");
+    broadcast();io.emit("peaceTimeUpdated",state.peaceTime);cb?.({ok:true,state:adminState()});
+  });
+  socket.on("adminEndPeaceTime",cb=>{
+    if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
+    state.peaceTime={startedAt:null,endsAt:null,startedBy:null};
+    addNotice("Peace Time was ended by the administrator. Territory challenges are available again.");
+    broadcast();io.emit("peaceTimeUpdated",state.peaceTime);cb?.({ok:true,state:adminState()});
+  });
+
   socket.on("adminResetTournament",cb=>{
     if(!socket.data.isAdmin)return cb?.({ok:false,error:"Admin authentication required."});
     state=blankState();save(state);io.emit("state",publicState());cb?.({ok:true});
@@ -547,6 +578,7 @@ io.on("connection",socket=>{
     const now=Date.now();
     if(!state.tournamentStartedAt)return cb?.({ok:false,error:"The tournament hasn't started yet. You cannot challenge or start matches until the admin starts the 48-hour tournament."});
     if(!tournamentIsActive(now))return cb?.({ok:false,error:"The 48-hour tournament has ended. New challenges are closed."});
+    if(peaceTimeActive(now))return cb?.({ok:false,error:`PEACE TIME is active. No territory challenges are allowed for another ${Math.ceil(peaceTimeRemaining(now)/60000)} minute(s).`});
     if(regenerateDefensePoints())broadcast();
     const attacker=state.players[socket.data.playerId],t=state.territories.find(x=>x.id===tid);
     if(!attacker||!t)return cb?.({ok:false,error:"Invalid player or territory."});
@@ -589,6 +621,7 @@ io.on("connection",socket=>{
   });
   socket.on("challengeAccept",(id,cb)=>{
     const now=Date.now();
+    if(peaceTimeActive(now))return cb?.({ok:false,error:`PEACE TIME is active. Challenge acceptance is paused for another ${Math.ceil(peaceTimeRemaining(now)/60000)} minute(s).`});
     if(!tournamentIsActive(now))return cb?.({ok:false,error:!state.tournamentStartedAt?"The tournament hasn't started yet. You cannot start matches until the admin starts the 48-hour tournament.":"The 48-hour tournament has ended. New matches are closed."});
     const p=state.players[socket.data.playerId],ch=state.challenges[id];
     if(!p||!ch)return cb?.({ok:false,error:"Challenge not found."});
