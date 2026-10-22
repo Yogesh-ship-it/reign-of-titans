@@ -567,7 +567,7 @@ io.on("connection", socket => {
     const now = Date.now();
     if (!tournamentIsActive(now)) return cb?.({ ok: false, error: "Peace Time can only be started while the 48-hour tournament is active." });
     if (peaceTimeActive(now)) return cb?.({ ok: false, error: "Peace Time is already active." });
-    state.peaceTime = { startedAt: now, endsAt: now + 6 * 60 * 60 * 1000, startedBy: ADMIN_ID };
+    state.peaceTime = { startedAt: now, endsAt: now + 10 * 60 * 60 * 1000, startedBy: ADMIN_ID };
     // Cancel only unanswered pending challenges; do not punish defenders for an admin-started truce.
     for (const ch of Object.values(state.challenges)) {
       if (ch.status === "pending") {
@@ -576,7 +576,7 @@ io.on("connection", socket => {
       }
     }
     state.adminEvents = state.adminEvents || []; state.adminEvents.unshift({ time: now, action: "startPeaceTime", endsAt: state.peaceTime.endsAt }); state.adminEvents = state.adminEvents.slice(0, 200);
-    addNotice("PEACE TIME has started for 6 hours. All new territory challenges are disabled.");
+    addNotice("PEACE TIME has started for 10 hours. All new territory challenges are disabled.");
     broadcast(); io.emit("peaceTimeUpdated", state.peaceTime); cb?.({ ok: true, state: adminState() });
   });
   socket.on("adminEndPeaceTime", cb => {
