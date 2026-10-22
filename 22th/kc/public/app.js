@@ -47,12 +47,13 @@ function renderFlags(){
   const layer=$("flags");layer.innerHTML="";
   // Positions are based on the ORIGINAL realm shown in the artwork. A captured
   // territory changes flag color but stays in its original territory location.
+  // Expanded territory zones give every 3×5 flag grid more breathing room.
   const zones=[
-    {id:"frost",x:[7,19],y:[5,17]}, {id:"verdant",x:[41,54],y:[4,17]},
-    {id:"ember",x:[76,88],y:[5,17]}, {id:"shadow",x:[2,13],y:[34,47]},
-    {id:"storm",x:[20,31],y:[34,47]}, {id:"stone",x:[44,55],y:[34,47]},
-    {id:"void",x:[85,96],y:[34,47]}, {id:"crimson",x:[6,18],y:[64,77]},
-    {id:"sun",x:[35,47],y:[64,77]}, {id:"sky",x:[70,82],y:[64,77]}
+    {id:"frost",x:[6,22],y:[4,22]}, {id:"verdant",x:[39,57],y:[3,22]},
+    {id:"ember",x:[73,91],y:[4,22]}, {id:"shadow",x:[1,17],y:[32,50]},
+    {id:"storm",x:[18,34],y:[32,50]}, {id:"stone",x:[42,58],y:[32,50]},
+    {id:"void",x:[83,99],y:[32,50]}, {id:"crimson",x:[4,21],y:[62,81]},
+    {id:"sun",x:[32,50],y:[62,81]}, {id:"sky",x:[68,86],y:[62,81]}
   ];
   const spots=[];
   for(let r=0;r<3;r++) for(let c=0;c<5;c++) spots.push([(c+0.5)/5,(r+0.5)/3]);
