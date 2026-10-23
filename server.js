@@ -800,6 +800,44 @@ io.on("connection", socket => {
 });
 
 app.get("/api/health", (req, res) => res.json({ ok: pgPool ? (databaseReady && !databaseLastError) : !process.env.RENDER, version: 3, storage: pgPool ? "postgresql" : "local-json-not-durable", databaseReady: !!(pgPool && databaseReady), persistenceError: databaseLastError }));
+
+// Admin-protected data endpoints — view database in browser
+// Usage: /api/admin/data?id=kamleshhhh&pass=kamlesh078
+function adminAuth(req, res, next) {
+  const id = req.query.id, pass = req.query.pass;
+  if (id !== ADMIN_ID || pass !== ADMIN_PASSWORD) return res.status(401).json({ error: "Admin authentication required. Use ?id=YOUR_ADMIN_ID&pass=YOUR_ADMIN_PASSWORD" });
+  next();
+}
+app.get("/api/admin/data", adminAuth, (req, res) => {
+  res.json({
+    storage: pgPool ? "postgresql" : "local-json",
+    databaseReady: !!(pgPool && databaseReady),
+    totalPlayers: Object.keys(state.players).length,
+    approvedPlayers: Object.values(state.players).filter(p => p.approved !== false).length,
+    pendingPlayers: Object.values(state.players).filter(p => p.approvalStatus === "pending").length,
+    totalTerritories: state.territories.length,
+    tournamentStartedAt: state.tournamentStartedAt,
+    tournamentStoppedAt: state.tournamentStoppedAt,
+    activeChallenges: Object.keys(state.challenges).length,
+    completedBattles: (state.completedBattles || []).length,
+    fullState: state
+  });
+});
+app.get("/api/admin/players", adminAuth, (req, res) => {
+  const players = Object.entries(state.players).map(([id, p]) => ({
+    id, name: p.name, riot: p.riot, discord: p.discord, gmail: p.gmail,
+    kingdom: p.kingdom, slot: p.slot, label: p.label,
+    wins: p.wins, losses: p.losses,
+    approved: p.approved, approvalStatus: p.approvalStatus,
+    registeredAt: p.registeredAt, lastSeenAt: p.lastSeenAt,
+    lastIpAddress: p.lastIpAddress, ipLocation: p.ipLocation
+  }));
+  res.json({ totalPlayers: players.length, players });
+});
+app.get("/api/admin/territories", adminAuth, (req, res) => {
+  res.json({ totalTerritories: state.territories.length, territories: state.territories });
+});
+
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 initializePersistentStorage().then(() => {
   server.listen(PORT, () => console.log(`Kingdom Conquest running on port ${PORT}`));
