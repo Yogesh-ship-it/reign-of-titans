@@ -564,6 +564,26 @@ io.on("connection", socket => {
     broadcast(); cb?.({ ok: true, state: adminState() });
     emitPlayer(playerId, "assigned", publicPlayer(p));
   });
+  socket.on("adminSetPlayerRecord", (payload, cb) => {
+    if (!socket.data.isAdmin) return cb?.({ ok: false, error: "Admin authentication required." });
+    const playerId = String(payload?.playerId || "");
+    const player = state.players[playerId];
+    if (!player) return cb?.({ ok: false, error: "Player not found." });
+    const wins = Number(payload?.wins), losses = Number(payload?.losses);
+    if (!Number.isSafeInteger(wins) || wins < 0 || !Number.isSafeInteger(losses) || losses < 0) {
+      return cb?.({ ok: false, error: "Wins and losses must be whole numbers 0 or greater." });
+    }
+    const previous = { wins: Math.max(0, Number(player.wins) || 0), losses: Math.max(0, Number(player.losses) || 0) };
+    player.wins = wins;
+    player.losses = losses;
+    state.adminEvents = state.adminEvents || [];
+    state.adminEvents.unshift({ time: Date.now(), action: "setPlayerRecord", playerId, label: player.label || player.riot || player.name, previous, wins, losses });
+    state.adminEvents = state.adminEvents.slice(0, 200);
+    save(state);
+    broadcast();
+    cb?.({ ok: true, state: adminState() });
+  });
+
   socket.on("adminRemovePlayer", (playerId, cb) => {
     if (!socket.data.isAdmin) return cb?.({ ok: false, error: "Admin authentication required." });
     const player = state.players[playerId]; if (!player) return cb?.({ ok: false, error: "Player not found." });
