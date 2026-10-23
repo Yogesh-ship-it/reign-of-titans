@@ -6,6 +6,23 @@ const https = require("https");
 const path = require("path");
 const crypto = require("crypto");
 
+// Render PostgreSQL is the durable source of truth when DATABASE_URL is configured.
+// The JSON file remains a local fallback and a convenient recovery snapshot.
+let pgPool = null;
+let databaseReady = false;
+let databaseWrites = Promise.resolve();
+let databaseLastError = null;
+if (process.env.DATABASE_URL) {
+  const { Pool } = require("pg");
+  pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL === "disable" ? false : { rejectUnauthorized: false },
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  });
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -170,14 +187,59 @@ function regenerateDefensePoints() {
 }
 
 function save(s) {
+  const serialized = JSON.stringify(s, null, 2);
   const dir = path.dirname(DATA_FILE);
   fs.mkdirSync(dir, { recursive: true });
   const tmp = `${DATA_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(s, null, 2));
+  fs.writeFileSync(tmp, serialized);
   fs.renameSync(tmp, DATA_FILE);
+  if (pgPool && databaseReady) {
+    // Serialize writes so rapid registrations cannot overwrite a newer snapshot.
+    const snapshot = JSON.stringify(s);
+    databaseWrites = databaseWrites.then(() => pgPool.query(
+      `INSERT INTO tournament_state (id, payload, updated_at) VALUES (1, $1::jsonb, NOW())
+       ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+      [snapshot]
+    )).then(() => { databaseLastError = null; }).catch(err => {
+      databaseLastError = String(err.message || err);
+      console.error("PostgreSQL persistence failed:", databaseLastError);
+    });
+  }
 }
 let state = load();
 ensureStateShape();
+
+async function initializePersistentStorage() {
+  if (!pgPool) {
+    if (process.env.RENDER) throw new Error("DATABASE_URL is required on Render before the site can safely accept registrations.");
+    console.warn("DATABASE_URL is not set. Running with local JSON storage only; this is NOT durable across Render deployments.");
+    return;
+  }
+  await pgPool.query(`CREATE TABLE IF NOT EXISTS tournament_state (
+    id SMALLINT PRIMARY KEY CHECK (id = 1),
+    payload JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  const result = await pgPool.query("SELECT payload FROM tournament_state WHERE id = 1");
+  if (result.rows.length && result.rows[0].payload) {
+    state = result.rows[0].payload;
+    ensureStateShape();
+    const serialized = JSON.stringify(state, null, 2);
+    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+    fs.writeFileSync(DATA_FILE, serialized);
+  } else {
+    ensureStateShape();
+    await pgPool.query("INSERT INTO tournament_state (id, payload, updated_at) VALUES (1, $1::jsonb, NOW()) ON CONFLICT (id) DO NOTHING", [JSON.stringify(state)]);
+    const latest = await pgPool.query("SELECT payload FROM tournament_state WHERE id = 1");
+    if (latest.rows[0]?.payload) state = latest.rows[0].payload;
+    ensureStateShape();
+  }
+  databaseReady = true;
+  // Persist any safe shape migrations performed during startup.
+  const snapshot = JSON.stringify(state);
+  await pgPool.query("UPDATE tournament_state SET payload = $1::jsonb, updated_at = NOW() WHERE id = 1", [snapshot]);
+  console.log("Persistent PostgreSQL storage is ready.");
+}
 
 function K(id) { return kingdoms.find(k => k.id === id) }
 function publicPlayer(p) {
@@ -451,8 +513,9 @@ io.on("connection", socket => {
   socket.on("register", (d, cb) => {
     const riot = String(d?.riot || "").trim(), discord = String(d?.discord || "").trim();
     if (!riot || !discord) return cb?.({ ok: false, error: "Enter both your in-game name and Discord ID." });
+    if (process.env.RENDER && !pgPool) return cb?.({ ok: false, error: "Permanent registration storage is not configured yet. Please contact the tournament admin before registering." });
     const norm = v => String(v || "").trim().toLowerCase();
-    const existing = Object.values(state.players).find(p => norm(p.riot) === norm(riot) && norm(p.discord) === norm(discord));
+    const existing = Object.values(state.players).find(p => norm(p.riot) === norm(riot) || norm(p.discord) === norm(discord));
     if (existing) { socket.data.playerId = existing.id; touchPlayerConnection(existing.id, socket); socket.emit("registered", { player: publicPlayer(existing), state: publicState() }); socket.emit("myMatchUsage", publicUsage(existing.id)); return cb?.({ ok: true, player: publicPlayer(existing), state: publicState(), existing: true }); }
     const id = crypto.randomUUID();
     state.players[id] = { id, name: riot, gmail: "", riot, discord, approved: false, approvalStatus: "pending", kingdom: null, slot: null, label: "Awaiting Approval", wins: 0, losses: 0, registeredAt: Date.now(), lastIpAddress: clientIp(socket), lastSeenAt: Date.now(), lastConnectedAt: Date.now(), connectionCount: 1 };
@@ -736,6 +799,13 @@ io.on("connection", socket => {
   });
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, version: 2 }));
+app.get("/api/health", (req, res) => res.json({ ok: pgPool ? (databaseReady && !databaseLastError) : !process.env.RENDER, version: 3, storage: pgPool ? "postgresql" : "local-json-not-durable", databaseReady: !!(pgPool && databaseReady), persistenceError: databaseLastError }));
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-server.listen(PORT, () => console.log(`Kingdom Conquest running on http://localhost:${PORT}`));
+initializePersistentStorage().then(() => {
+  server.listen(PORT, () => console.log(`Kingdom Conquest running on port ${PORT}`));
+}).catch(err => {
+  console.error("Could not initialize persistent database. Server will not start to avoid losing registrations:", err);
+  process.exitCode = 1;
+  server.close(() => {});
+  if (pgPool) pgPool.end().catch(() => {});
+});

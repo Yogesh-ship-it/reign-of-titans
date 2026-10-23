@@ -142,3 +142,12 @@
 .territory-flag.enemy{opacity:.96}
 .territory-flag:hover{transform:translate(-50%,-50%) scale(1.24);z-index:40}
 @media(max-width:700px){.map-canvas{min-width:1000px}.territory-flag{width:27px;height:36px}}
+
+
+/* Reliable territory hit targets and compact 3D flag interaction. */
+#flags,.admin-map-flags{z-index:10;pointer-events:none}
+.territory-flag,.admin-map-flag{pointer-events:auto;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.territory-flag{appearance:none;-webkit-appearance:none;outline-offset:3px}
+.territory-flag:focus-visible,.admin-map-flag:focus-visible{outline:2px solid #fff3b0;outline-offset:3px;z-index:100}
+.territory-flag:hover{filter:drop-shadow(0 3px 5px #000) drop-shadow(0 0 18px var(--flag)) drop-shadow(0 0 28px var(--flag));}
+@media(max-width:700px){.map-viewport{height:calc(100% - 148px)}.map-canvas{min-width:1200px!important;width:1200px!important}}

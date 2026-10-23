@@ -42,7 +42,7 @@
 <g transform="translate(845 920) scale(.8)"><path d="M-40 25V-10h15v-22h18v22h18v-34h18v34h18v-22h15v57Z" fill="#fff0b5"/><rect x="-8" y="8" width="16" height="17" fill="#26313b"/></g>
 </g>
 <!-- realm nameplates; clickable territory flags are rendered by the live application above this artwork -->
-<g font-family="Georgia,serif" font-weight="bold" text-anchor="middle" fill="#f7e8bc" stroke="#111821" stroke-width="4" paint-order="stroke" font-size="27" letter-spacing="2">
+<g font-family="Georgia,serif" font-weight="bold" text-anchor="middle" fill="#f7e8bc" stroke="#111821" stroke-width="1.5" paint-order="stroke" font-size="27" letter-spacing="2">
 <text x="255" y="310">NORTHGARD</text><text x="875" y="315">VALORIA</text><text x="1515" y="315">EMBERFALL</text>
 <text x="165" y="655">SHADOW REALM</text><text x="500" y="655">STORMLANDS</text><text x="945" y="655">IRONCLAD</text><text x="1640" y="655">VOID EMPIRE</text>
 <text x="255" y="1070">CRIMSON HOLD</text><text x="820" y="1070">SILVERDAWN</text><text x="1420" y="1070">FROSTFANG</text>

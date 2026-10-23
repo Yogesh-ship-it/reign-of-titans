@@ -34,3 +34,10 @@ If your host sits behind a reverse proxy, configure `TRUST_PROXY=true` only when
 - Each player can start 5 matches per personal two-hour period.
 - Each territory starts with 3 Defense Points; an unanswered/declined challenge removes one point from that territory. At zero Defense Points, an unanswered/declined challenge can cause automatic occupation. Territory Defense Points regenerate by one point per hour during the active tournament, up to 3.
 - State is persisted in data.json using atomic file replacement. Set DATA_FILE to a path on persistent storage when deploying to a host that uses ephemeral filesystems; do not replace that database file when deploying website code updates.
+
+
+## Permanent storage on Render (required for durable registrations)
+
+This server supports Render PostgreSQL through the `DATABASE_URL` environment variable. In the Render web service, set `DATABASE_URL` to the Internal Database URL from a Render PostgreSQL database. The app creates its `tournament_state` table automatically and stores the complete tournament state, including registrations, approvals, kingdom assignments, territories, and battle data. If `DATABASE_URL` is set but the database cannot be reached, the server refuses to start rather than silently accepting registrations into temporary storage. The JSON file is retained as a local recovery snapshot, not as durable production storage. Check `/api/health`; durable mode reports `storage: "postgresql"` and `databaseReady: true`.
+
+Registration duplicate detection treats a matching in-game name OR matching Discord ID as an existing registration. The existing registration is resumed rather than creating another record.
