@@ -691,8 +691,7 @@ io.on("connection", socket => {
     if (playerInMatch(attacker.id)) return cb?.({ ok: false, error: "You are already in a match." });
     if (t.kingdom === attacker.kingdom) return cb?.({ ok: false, error: "You cannot attack your own Kingdom." });
     if (activeChallengeForTerritory(tid)) return cb?.({ ok: false, error: "That territory is already under challenge." });
-    const alreadyTargeted = Array.isArray(state.attackHistoryByKingdom[attacker.kingdom]) && state.attackHistoryByKingdom[attacker.kingdom].includes(tid);
-    if (alreadyTargeted) return cb?.({ ok: false, error: "This Kingdom has already attacked this territory. Choose a different territory." });
+    // Territories may be attacked repeatedly. Only consecutive attacks against the same defending kingdom are restricted.
     if (state.lastOpponentByAttackingKingdom[attacker.kingdom] === t.kingdom) return cb?.({ ok: false, error: "Cannot challenge the same Kingdom consecutively. You must complete a match against a different Kingdom first." });
     if (!canStartMatch(attacker.id)) return cb?.({ ok: false, error: "You have used all 5 matches in your personal two-hour period." });
     const ch = {
@@ -700,8 +699,6 @@ io.on("connection", socket => {
       createdAt: now, expiresAt: now + CHALLENGE_RESPONSE_MS, checkins: {}, chat: []
     };
     state.challenges[ch.id] = ch;
-    state.attackHistoryByKingdom[attacker.kingdom] = state.attackHistoryByKingdom[attacker.kingdom] || [];
-    state.attackHistoryByKingdom[attacker.kingdom].push(tid);
     addNotice(`${attacker.label} challenged Territory ${t.num} of ${K(t.kingdom).name}.`, t.kingdom);
     emitAdmins("challengeRequest", { challenge: ch, attacker: publicPlayer(attacker), territory: t, defenderKingdom: K(t.kingdom) });
     notifyKingdom(t.kingdom, "challengeIncoming", { challenge: ch, attacker: publicPlayer(attacker), territory: t, defenderKingdom: K(t.kingdom) });
