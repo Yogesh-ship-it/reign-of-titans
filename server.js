@@ -280,8 +280,12 @@ function socketIdsForPlayer(playerId) {
 function emitPlayer(playerId, event, payload) {
   for (const sid of socketIdsForPlayer(playerId)) io.to(sid).emit(event, payload)
 }
-function playerInMatch(playerId) {
-  return Object.values(state.challenges).some(ch => [ch.attackerId, ch.defenderId].includes(playerId) && ["accepted", "ready", "reported", "disputed"].includes(ch.status));
+function playerInMatch(playerId, excludeChallengeId = null) {
+  // A pending challenge already reserves its attacker. When accepting that same
+  // challenge, exclude it from the attacker's own lock check.
+  return Object.values(state.challenges).some(ch => ch.id !== excludeChallengeId &&
+    [ch.attackerId, ch.defenderId].includes(playerId) &&
+    ["pending", "accepted", "ready", "reported", "disputed"].includes(ch.status));
 }
 function notifyKingdom(kid, event, payload) {
   Object.values(state.players).filter(p => p.kingdom === kid && !(event === "challengeIncoming" && playerInMatch(p.id))).forEach(p => emitPlayer(p.id, event, payload))
@@ -732,7 +736,7 @@ io.on("connection", socket => {
     if (p.approved === false) return cb?.({ ok: false, error: "Your registration is still pending admin approval." });
     if (p.kingdom !== ch.defenderKingdom) return cb?.({ ok: false, error: "Only an approved player from the defending Kingdom can accept." });
     if (playerInMatch(p.id)) return cb?.({ ok: false, error: "You are already in a match." });
-    if (playerInMatch(ch.attackerId)) return cb?.({ ok: false, error: "The challenger is already in a match." });
+    if (playerInMatch(ch.attackerId, ch.id)) return cb?.({ ok: false, error: "The challenger is already in another match." });
     if (!canStartMatch(ch.attackerId)) return cb?.({ ok: false, error: "The challenger has reached their personal match limit." });
     if (!canStartMatch(p.id)) return cb?.({ ok: false, error: "You have reached your limit of 5 matches for this two-hour period." });
     ch.defenderId = p.id; ch.status = "accepted"; ch.acceptedAt = now; ch.checkinExpiresAt = now + CHECKIN_WINDOW_MS;
