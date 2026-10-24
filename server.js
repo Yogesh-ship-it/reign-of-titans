@@ -61,7 +61,7 @@ const zones = [
 function blankState() {
   const territories = [];
   kingdoms.forEach(k => {
-    for (let i = 1; i <= 15; i++) territories.push({ id: `${k.id}-${i}`, num: i, kingdom: k.id, originalKingdom: k.id, defensePoints: 3 });
+    for (let i = 1; i <= 15; i++) territories.push({ id: `${k.id}-${i}`, num: i, kingdom: k.id, originalKingdom: k.id });
   });
   return {
     version: 6,
@@ -102,11 +102,12 @@ function load() {
         for (const k of kingdoms) {
           for (let i = 1; i <= 15; i++) {
             const id = `${k.id}-${i}`;
-            if (!existingIds.has(id)) parsed.territories.push({ id, num: i, kingdom: k.id, originalKingdom: k.id, defensePoints: 3 });
+            if (!existingIds.has(id)) parsed.territories.push({ id, num: i, kingdom: k.id, originalKingdom: k.id });
           }
         }
         parsed.territories = parsed.territories.filter(t => kingdoms.some(k => t.id.startsWith(k.id + "-")));
-        for (const t of parsed.territories) { if (!Number.isFinite(Number(t.defensePoints))) t.defensePoints = 3; t.defensePoints = Math.max(0, Math.min(3, Number(t.defensePoints))); }
+        // Defense Points are a shared kingdom-wide balance, never stored per territory.
+        for (const t of parsed.territories) delete t.defensePoints;
         if (!parsed.defensePoints) parsed.defensePoints = {};
         for (const k of kingdoms) if (!Number.isFinite(Number(parsed.defensePoints[k.id]))) parsed.defensePoints[k.id] = 3;
         parsed.peaceTime = parsed.peaceTime || { startedAt: null, endsAt: null, startedBy: null };
@@ -140,8 +141,8 @@ function ensureStateShape() {
     if (typeof p.approved !== "boolean") p.approved = !!p.kingdom;
     if (!p.approvalStatus) p.approvalStatus = p.approved ? "approved" : "pending";
   }
-  // Ensure each territory has its own Defense Point balance.
-  for (const t of state.territories) { if (!Number.isFinite(Number(t.defensePoints))) t.defensePoints = 3; t.defensePoints = Math.max(0, Math.min(3, Number(t.defensePoints))); }
+  // Defense Points are shared by each whole kingdom, not by individual territories.
+  for (const t of state.territories) delete t.defensePoints;
   state.version = 6;
 }
 function usageFor(playerId) {
@@ -180,8 +181,6 @@ function regenerateDefensePoints() {
   const now = Date.now(), hours = Math.floor((now - state.lastDefenseRegenAt) / 3600000);
   if (hours <= 0) return false;
   for (const k of kingdoms) state.defensePoints[k.id] = Math.min(3, Math.max(0, Number(state.defensePoints[k.id] ?? 3)) + hours);
-  for (const t of state.territories) t.defensePoints = Math.min(3, Math.max(0, Number(t.defensePoints ?? 3)) + hours);
-  for (const k of kingdoms) { const owned = state.territories.filter(t => t.kingdom === k.id); if (owned.length) state.defensePoints[k.id] = Math.min(...owned.map(t => Number(t.defensePoints ?? 3))); }
   state.lastDefenseRegenAt += hours * 3600000;
   return true;
 }
@@ -259,6 +258,7 @@ function publicState() {
     playerOrder: state.playerOrder,
     territories: state.territories,
     challenges: state.challenges,
+    completedBattles: (state.completedBattles || []).map(ch => ({ id: ch.id, territoryId: ch.territoryId, attackerId: ch.attackerId, attackerKingdom: ch.attackerKingdom, defenderId: ch.defenderId, defenderKingdom: ch.defenderKingdom, status: ch.status || "completed", winnerId: ch.winnerId || null, createdAt: ch.createdAt || ch.completedAt, resolvedAt: ch.resolvedAt || ch.completedAt, resolutionReason: ch.resolutionReason || "" })),
     reports: state.reports,
     notifications: state.notifications.slice(0, 100),
     kingdoms,
@@ -288,7 +288,7 @@ function playerInMatch(playerId, excludeChallengeId = null) {
     ["pending", "accepted", "ready", "reported", "disputed"].includes(ch.status));
 }
 function notifyKingdom(kid, event, payload) {
-  Object.values(state.players).filter(p => p.kingdom === kid && !(event === "challengeIncoming" && playerInMatch(p.id))).forEach(p => emitPlayer(p.id, event, payload))
+  Object.values(state.players).filter(p => p.approved !== false && p.kingdom === kid).forEach(p => emitPlayer(p.id, event, payload))
 }
 function emitAdmins(event, payload) {
   for (const s of io.sockets.sockets.values()) if (s.data.isAdmin) s.emit(event, payload)
@@ -341,24 +341,25 @@ function applyDefensiveFailure(ch, source) {
   if (!attacker || !defenderKingdom) { delete state.challenges[ch.id]; delete state.reports[ch.id]; broadcast(); return; }
   const challengedTerritory = state.territories.find(t => t.id === ch.territoryId);
   if (attacker.kingdom && defenderKingdom) state.lastOpponentByAttackingKingdom[attacker.kingdom] = defenderKingdom;
-  const points = Math.max(0, Number(challengedTerritory?.defensePoints ?? 3));
+  const points = Math.max(0, Math.min(3, Number(state.defensePoints?.[defenderKingdom] ?? 3)));
   const failureText = source === "the challenge expired" ? "did not respond within 15 minutes" : source;
+  // Defense Points belong to the whole kingdom. When the kingdom is already at zero,
+  // the next unanswered/fully-declined challenge captures the challenged territory.
   if (points === 0) {
     ch.walkover = true;
-    resolve(ch.id, attacker.id, `Automatic occupation: ${K(defenderKingdom)?.name || "The defending Kingdom"} had zero Defense Points and ${failureText}.`);
-    const detail = source === "the challenge expired" ? "failed to respond within 15 minutes" : "declined the challenge";
-    emitPlayer(attacker.id, "walkover", { challengeId: ch.id, title: "TERRITORY OCCUPIED!", message: `The defending Kingdom had zero Defense Points and ${detail}. The territory has been occupied.` });
+    resolve(ch.id, attacker.id, `Automatic occupation: ${K(defenderKingdom)?.name || "The defending Kingdom"} had zero kingdom-wide Defense Points and ${failureText}.`);
+    const detail = source === "the challenge expired" ? "failed to respond within 15 minutes" : "all three defenders declined the challenge";
+    emitPlayer(attacker.id, "walkover", { challengeId: ch.id, title: "TERRITORY OCCUPIED!", message: `The defending Kingdom had zero kingdom-wide Defense Points and ${detail}. The territory has been occupied.` });
     notifyKingdom(defenderKingdom, "walkover", { challengeId: ch.id, title: "TERRITORY LOST", message: `Your Kingdom had zero Defense Points and ${detail}. The territory has been occupied.` });
     return;
   }
-  if (challengedTerritory) challengedTerritory.defensePoints = points - 1;
-  const remaining = challengedTerritory?.defensePoints ?? Math.max(0, points - 1);
-  const ownedTerritories = state.territories.filter(t => t.kingdom === defenderKingdom); if (ownedTerritories.length) state.defensePoints[defenderKingdom] = Math.min(...ownedTerritories.map(t => Number(t.defensePoints ?? 3)));
+  const remaining = Math.max(0, points - 1);
+  state.defensePoints[defenderKingdom] = remaining;
   delete state.challenges[ch.id]; delete state.reports[ch.id];
-  addNotice(`${K(defenderKingdom)?.name || "The defending Kingdom"} ${failureText}. Defense Points decreased to ${remaining}/3.`, defenderKingdom);
+  addNotice(`${K(defenderKingdom)?.name || "The defending Kingdom"} ${failureText}. Kingdom-wide Defense Points decreased to ${remaining}/3.`, defenderKingdom);
   io.emit("challengeCancelled", { challengeId: ch.id, territoryId: ch.territoryId, reason: source, defenderKingdom, defensePoints: remaining });
-  emitPlayer(attacker.id, "walkover", { challengeId: ch.id, title: "DEFENSE POINT LOST", message: `The defending Kingdom ${failureText}. Its Defense Points decreased to ${remaining}/3; the territory was not captured.` });
-  notifyKingdom(defenderKingdom, "walkover", { challengeId: ch.id, title: "CHALLENGE EXPIRED", message: `Your Kingdom ${failureText} and lost 1 Defense Point. ${remaining} Defense Point(s) remain.` });
+  emitPlayer(attacker.id, "walkover", { challengeId: ch.id, title: "DEFENSE POINT LOST", message: `The defending Kingdom ${failureText}. Its shared kingdom Defense Points decreased to ${remaining}/3; the territory was not captured.` });
+  notifyKingdom(defenderKingdom, "walkover", { challengeId: ch.id, title: "CHALLENGE FAILED", message: `Your Kingdom ${failureText} and lost 1 shared Defense Point. ${remaining} Defense Point(s) remain across your entire Kingdom.` });
   broadcast();
 }
 function expirePendingChallenge(chId) {
@@ -596,6 +597,22 @@ io.on("connection", socket => {
     state.adminEvents.unshift({ time: Date.now(), action: "removePlayer", playerId, label: player.label || player.name }); state.adminEvents = state.adminEvents.slice(0, 200);
     addNotice(`Admin removed ${player.label || player.name} from the active tournament.`); broadcast(); cb?.({ ok: true, state: adminState() });
   });
+  socket.on("adminSetDefensePoints", (payload, cb) => {
+    if (!socket.data.isAdmin) return cb?.({ ok: false, error: "Admin authentication required." });
+    const kingdomId = String(payload?.kingdomId || "");
+    const value = Number(payload?.points);
+    const kingdom = K(kingdomId);
+    if (!kingdom) return cb?.({ ok: false, error: "Kingdom not found." });
+    if (!Number.isInteger(value) || value < 0 || value > 3) return cb?.({ ok: false, error: "Defense Points must be a whole number from 0 to 3." });
+    state.defensePoints[kingdomId] = value;
+    state.adminEvents = state.adminEvents || [];
+    state.adminEvents.unshift({ time: Date.now(), action: "setDefensePoints", kingdomId, points: value });
+    state.adminEvents = state.adminEvents.slice(0, 200);
+    addNotice(`Admin set ${kingdom.name} Defense Points to ${value}/3.`);
+    broadcast();
+    cb?.({ ok: true, state: adminState() });
+  });
+
   socket.on("adminSetTerritoryOwner", (territoryId, kingdomId, cb) => {
     if (!socket.data.isAdmin) return cb?.({ ok: false, error: "Admin authentication required." });
     const t = state.territories.find(x => x.id === territoryId), k = K(kingdomId);
@@ -718,9 +735,20 @@ io.on("connection", socket => {
   socket.on("challengeDecline", (id, cb) => {
     const p = state.players[socket.data.playerId], ch = state.challenges[id];
     if (!p || !ch || ch.status !== "pending") return cb?.({ ok: false, error: "This challenge is no longer pending." });
-    if (p.kingdom !== ch.defenderKingdom) return cb?.({ ok: false, error: "Only a member of the defending Kingdom can decline." });
-    applyDefensiveFailure(ch, `${p.label} declined the challenge`);
-    cb?.({ ok: true, defensePoints: state.territories.find(t => t.id === ch.territoryId)?.defensePoints ?? 3 });
+    if (p.approved === false || p.kingdom !== ch.defenderKingdom) return cb?.({ ok: false, error: "Only an approved member of the defending Kingdom can decline." });
+    ch.declinedBy = Array.isArray(ch.declinedBy) ? ch.declinedBy : [];
+    if (!ch.declinedBy.includes(p.id)) ch.declinedBy.push(p.id);
+    const defenders = Object.values(state.players).filter(x => x.approved !== false && x.kingdom === ch.defenderKingdom);
+    const allDeclined = defenders.length >= 3 && defenders.slice(0, 3).every(x => ch.declinedBy.includes(x.id));
+    if (allDeclined) {
+      ch.allDefendersDeclined = true;
+      applyDefensiveFailure(ch, "all three defenders declined the challenge");
+      cb?.({ ok: true, allDeclined: true, defensePoints: state.defensePoints[ch.defenderKingdom] ?? 3 });
+      return;
+    }
+    addNotice(`${p.label} declined a challenge. Other defenders can still accept it.`, ch.defenderKingdom);
+    broadcast();
+    cb?.({ ok: true, allDeclined: false, declinedCount: ch.declinedBy.length, defendersRequired: 3 });
   });
   socket.on("challengeAccept", (id, cb) => {
     const now = Date.now();
@@ -735,7 +763,6 @@ io.on("connection", socket => {
     if (playerInMatch(p.id)) return cb?.({ ok: false, error: "You are already in a match." });
     if (playerInMatch(ch.attackerId, ch.id)) return cb?.({ ok: false, error: "The challenger is already in another match." });
     if (!canStartMatch(ch.attackerId)) return cb?.({ ok: false, error: "The challenger has reached their personal match limit." });
-    if (!canStartMatch(p.id)) return cb?.({ ok: false, error: "You have reached your limit of 5 matches for this two-hour period." });
     ch.defenderId = p.id; ch.status = "accepted"; ch.acceptedAt = now; ch.checkinExpiresAt = now + CHECKIN_WINDOW_MS;
     addNotice(`${p.label} accepted a territory challenge.`);
     emitAdmins("challengeAcceptedAdmin", { challenge: ch, defender: publicPlayer(p) });
@@ -746,11 +773,11 @@ io.on("connection", socket => {
     const p = state.players[socket.data.playerId], ch = state.challenges[id];
     if (!p || !ch || ![ch.attackerId, ch.defenderId].includes(p.id)) return cb?.({ ok: false, error: "You are not part of this battle." });
     if (ch.status !== "accepted" && ch.status !== "ready") return cb?.({ ok: false, error: "Check-in is not open for this challenge." });
+    if (ch.checkins[p.id]) return cb?.({ ok: true, alreadyCheckedIn: true, challenge: ch, matchStarted: ch.status === "ready" });
     if (ch.checkinExpiresAt && Date.now() >= ch.checkinExpiresAt) return cb?.({ ok: false, error: "The five-minute check-in window has expired." });
-    if (ch.checkins[p.id]) return cb?.({ ok: true, alreadyCheckedIn: true });
     ch.checkins[p.id] = Date.now();
     if (ch.checkins[ch.attackerId] && ch.checkins[ch.defenderId]) {
-      const usage = startMatchUsage([ch.attackerId, ch.defenderId]);
+      const usage = startMatchUsage([ch.attackerId]);
       if (!usage.ok) { delete ch.checkins[p.id]; return cb?.({ ok: false, error: "A player has reached their personal match limit. The match cannot start." }); }
       ch.status = "ready"; ch.matchStartedAt = Date.now();
       addNotice(`${state.players[ch.attackerId]?.label || "Attacker"} and ${state.players[ch.defenderId]?.label || "Defender"} both checked in. Match started.`);

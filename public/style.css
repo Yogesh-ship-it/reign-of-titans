@@ -151,3 +151,13 @@
 .territory-flag:focus-visible,.admin-map-flag:focus-visible{outline:2px solid #fff3b0;outline-offset:3px;z-index:100}
 .territory-flag:hover{filter:drop-shadow(0 3px 5px #000) drop-shadow(0 0 18px var(--flag)) drop-shadow(0 0 28px var(--flag));}
 @media(max-width:700px){.map-viewport{height:calc(100% - 148px)}.map-canvas{min-width:1200px!important;width:1200px!important}}
+
+/* Match window tabs and response controls */
+.match-window-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+.public-match{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;margin:8px 0;background:rgba(12,18,28,.86);border:1px solid #303b49;border-radius:9px}
+.public-match-main{display:flex;flex-direction:column;gap:5px;min-width:0}
+.public-match-main small{color:#9ca9b8;font-size:11px;overflow-wrap:anywhere}
+.public-match-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px}
+.public-match-actions strong{font-size:10px;letter-spacing:.7px;color:#f2cb68;white-space:nowrap}
+.public-match-actions button{white-space:nowrap}
+@media(max-width:600px){.public-match{align-items:flex-start;flex-direction:column}.public-match-actions{justify-content:flex-start}.match-window-tabs button{flex:1}}
