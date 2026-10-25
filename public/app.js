@@ -249,13 +249,24 @@ function renderPublicMatches() {
     const canRespond = me && ch.status === "pending" && me.kingdom === ch.defenderKingdom && me.approved !== false;
     const mine = me && (ch.attackerId === me.id || ch.defenderId === me.id);
     const status = String(ch.status || "pending").replace(/-/g," ").toUpperCase();
-    return `<div class="public-match"><div class="public-match-main"><b>Territory ${t?.num || "?"} · ${esc(K(ch.defenderKingdom)?.name || "Defender")}</b><small>${esc(K(ch.attackerKingdom)?.name || "Attacker")} vs ${esc(K(ch.defenderKingdom)?.name || "Defender")}</small><small>${esc(a?.riot || a?.name || "Attacker")} ${d ? "vs " + esc(d.riot || d.name) : "· Waiting for defender"}${mine ? " · YOUR MATCH" : ""}</small></div><div class="public-match-actions"><strong>${esc(status)}</strong>${canRespond ? `<button class="gold-button small" data-accept-challenge="${ch.id}">ACCEPT</button><button class="dark-button small" data-decline-challenge="${ch.id}">DECLINE</button>` : mine && active.some(x => x.id === ch.id) ? `<button class="gold-button small" data-open-match="${ch.id}">OPEN MATCH</button>` : ""}</div></div>`;
+    const expiry = matchView === "kingdom" && ch.status === "pending" && Number(ch.expiresAt) > 0
+      ? `<small class="challenge-expiry">EXPIRES IN <b data-challenge-countdown="${Number(ch.expiresAt)}">${fmt(Number(ch.expiresAt) - Date.now())}</b></small>` : "";
+    return `<div class="public-match"><div class="public-match-main"><b>Territory ${t?.num || "?"} · ${esc(K(ch.defenderKingdom)?.name || "Defender")}</b><small>${esc(K(ch.attackerKingdom)?.name || "Attacker")} vs ${esc(K(ch.defenderKingdom)?.name || "Defender")}</small><small>${esc(a?.riot || a?.name || "Attacker")} ${d ? "vs " + esc(d.riot || d.name) : "· Waiting for defender"}${mine ? " · YOUR MATCH" : ""}</small>${expiry}</div><div class="public-match-actions"><strong>${esc(status)}</strong>${canRespond ? `<button class="gold-button small" data-accept-challenge="${ch.id}">ACCEPT</button><button class="dark-button small" data-decline-challenge="${ch.id}">DECLINE</button>` : mine && active.some(x => x.id === ch.id) ? `<button class="gold-button small" data-open-match="${ch.id}">OPEN MATCH</button>` : ""}</div></div>`;
   });
   el.innerHTML = rows.join("") || `<div class='admin-empty'>${matchView === "mine" ? "You have no matches yet." : matchView === "kingdom" ? "No challenges involving your kingdom yet." : "No active or completed matches yet."}</div>`;
   document.querySelectorAll("[data-accept-challenge]").forEach(b => b.onclick = () => { b.disabled = true; socket.emit("challengeAccept", b.dataset.acceptChallenge, r => { if (!r?.ok) { toast(r?.error || "Could not accept challenge."); renderPublicMatches(); return; } activeChallenge = r.challenge; matchView = "mine"; window.matchView = matchView; renderPublicMatches(); openMatch(); }) });
   document.querySelectorAll("[data-decline-challenge]").forEach(b => b.onclick = () => { b.disabled = true; socket.emit("challengeDecline", b.dataset.declineChallenge, r => { if (!r?.ok) toast(r?.error || "Could not decline challenge."); else toast(r.allDeclined ? "All three defenders declined. One Defense Point was deducted." : `Decline saved (${r.declinedCount || 1}/3).`); renderPublicMatches(); }) });
   document.querySelectorAll("[data-open-match]").forEach(b => b.onclick = () => { const ch = state.challenges?.[b.dataset.openMatch]; if (ch && me && [ch.attackerId,ch.defenderId].includes(me.id)) { activeChallenge = ch; openMatch(); } });
 }
+setInterval(() => {
+  if (window.matchView !== "kingdom" || $("matchesModal")?.classList.contains("hidden")) return;
+  document.querySelectorAll("[data-challenge-countdown]").forEach(el => {
+    const expiresAt = Number(el.dataset.challengeCountdown || 0);
+    const remaining = expiresAt - Date.now();
+    el.textContent = fmt(remaining);
+    if (remaining <= 0) el.textContent = "00:00:00";
+  });
+}, 1000);
 document.querySelectorAll("[data-home-nav]").forEach(btn => btn.addEventListener("click", () => { const section = btn.dataset.homeNav; document.querySelectorAll("[data-home-nav]").forEach(x => x.classList.toggle("active", x === btn)); if (section === "home") { goHome(); return } if (section === "map") { if (me && me.approved !== false && me.kingdom) { hide("homeScreen"); hide("scoreScreen"); show("mapScreen") } else { hide("homeScreen"); show("loginScreen") } return } if (section === "leaderboard") { if (state) { renderScore(); hide("homeScreen"); hide("mapScreen"); show("scoreScreen") } else toast("Enter the arena to view live rankings."); return } if (section === "rules") { show("rulesModal"); return } if (section === "players") { if (state) { renderPublicPlayers(); show("playersModal") } else toast("Enter the arena to view the roster."); return } if (section === "matches") { if (state) { renderPublicMatches(); show("matchesModal") } else toast("Enter the arena to view matches."); return } if (section === "admin") { window.location.href = "/admin" } }));
 
 setInterval(updateHomeStatus, 1000);

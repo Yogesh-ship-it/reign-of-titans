@@ -556,15 +556,30 @@ io.on("connection", socket => {
 
   socket.on("adminAssign", (playerId, kingdomId, cb) => {
     if (!socket.data.isAdmin) return cb?.({ ok: false, error: "Admin authentication required." });
-    const p = state.players[playerId], k = K(kingdomId);
-    if (!p || !k) return cb?.({ ok: false, error: "Player or Kingdom not found." });
+    const p = state.players[playerId];
+    if (!p) return cb?.({ ok: false, error: "Player not found." });
     if (p.approved === false) return cb?.({ ok: false, error: "Approve this registration before assigning a Kingdom." });
+    // In Waiting temporarily unassigns the player without deleting registration or history.
+    if (kingdomId === "__waiting__") {
+      if (!p.kingdom) return cb?.({ ok: false, error: "Player is already In Waiting." });
+      const previousKingdom = K(p.kingdom);
+      p.kingdom = null; p.slot = null; p.label = "In Waiting";
+      state.adminEvents.unshift({ time: Date.now(), action: "unassignToWaiting", playerId, previousKingdom: previousKingdom?.id || null });
+      state.adminEvents = state.adminEvents.slice(0, 200);
+      addNotice(`${p.name} has been moved to In Waiting${previousKingdom ? ` from ${previousKingdom.name}` : ""}.`);
+      broadcast(); cb?.({ ok: true, state: adminState() });
+      emitPlayer(playerId, "assigned", publicPlayer(p));
+      return;
+    }
+    const k = K(kingdomId);
+    if (!k) return cb?.({ ok: false, error: "Player or Kingdom not found." });
     if (p.kingdom === kingdomId) return cb?.({ ok: false, error: "Player is already assigned to this Kingdom." });
     if (slotFor(kingdomId) === null) return cb?.({ ok: false, error: "That Kingdom already has 3 players." });
     // If reassigned, free the old slot naturally; labels of other players stay stable.
     const slot = slotFor(kingdomId);
     p.kingdom = kingdomId; p.slot = slot; p.label = labelFor(kingdomId, slot);
     state.adminEvents.unshift({ time: Date.now(), action: "assign", playerId, kingdomId });
+    state.adminEvents = state.adminEvents.slice(0, 200);
     addNotice(`${p.name} has been assigned to ${k.name}.`);
     broadcast(); cb?.({ ok: true, state: adminState() });
     emitPlayer(playerId, "assigned", publicPlayer(p));
@@ -710,6 +725,8 @@ io.on("connection", socket => {
     if (activeChallengeForTerritory(tid)) return cb?.({ ok: false, error: "That territory is already under challenge." });
     // Territories may be attacked repeatedly. Only consecutive attacks against the same defending kingdom are restricted.
     if (state.lastOpponentByAttackingKingdom[attacker.kingdom] === t.kingdom) return cb?.({ ok: false, error: "Cannot challenge the same Kingdom consecutively. You must complete a match against a different Kingdom first." });
+    const activeForDefendingKingdom = Object.values(state.challenges).filter(ch => ch.defenderKingdom === t.kingdom && ["pending", "accepted", "ready", "reported", "disputed"].includes(ch.status)).length;
+    if (activeForDefendingKingdom >= 5) return cb?.({ ok: false, error: "This Kingdom already has 5 active challenges. Wait for one to be completed or cancelled before challenging it again." });
     if (!canStartMatch(attacker.id)) return cb?.({ ok: false, error: "You have used all 5 matches in your personal two-hour period." });
     const ch = {
       id: crypto.randomUUID(), territoryId: tid, attackerId: attacker.id, attackerKingdom: attacker.kingdom, defenderKingdom: t.kingdom, defenderId: null, status: "pending",
